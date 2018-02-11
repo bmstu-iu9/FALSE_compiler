@@ -6,21 +6,75 @@ execfile   			DB	'1.com',0
 exechandle 			DW	?
 handle     			DW	?
 fbuff      			DB	?
+number				DW 	?
 address_pointer 	DW	100h
 flags      			DB	0
 jmp_labels  		DW	32 dup(?)
 jmp_labels_pointer 	DW	0
 jmp_offset			DW  0
-BIAS				DW  036H
+vars_offset			DB 	3
+
 OPCODE_EOF			DB  '$'
 OPCODE_JMP  		DB	0EBh, 000H
-JMP_RUNTIME			DB	0EBh, 034H ; change if BIAS changes (!!!!)
 OPCODE_MOV_DX		DB  0BAh
 OPCODE_PRINT		DB  0B4h, 009h, 0CDh, 021h
 OPCODE_END			DB  0B4h, 04Ch ,0CDh, 021h
 
+
 .CODE
 .STARTUP
+begin_runtime:
+	jmp end_runtime
+	VARS: dw 26 dup(0)
+	mov si, 300h;
+runtime_if:
+	ret
+
+runtime_while:
+	ret
+
+call_runtime_assign:
+	call runtime_assign
+end_call_runtime_assign:
+
+call_runtime_get_value:
+	call runtime_get_value
+end_call_runtime_get_value:
+
+call_runtime_push:
+	call runtime_push
+end_call_runtime_push:
+	
+runtime_assign proc near
+	mov di, bx;
+	call runtime_pop
+	mov [di], bx
+	call runtime_pop
+	ret
+runtime_assign endp
+
+runtime_get_value proc near
+	mov di, bx
+	mov ax, [di]
+	call runtime_push
+	ret
+runtime_get_value endp
+	
+runtime_push proc near ;push ax value to the stack
+	inc si;
+	mov bx, ax
+	mov [si], ax;
+	ret
+runtime_push endp
+
+runtime_pop proc near
+	dec si
+	mov bx, [si]
+	ret
+runtime_pop endp
+	
+end_runtime:
+
 	call openfile  
 	call createfile
 	call init_runtime
@@ -42,24 +96,30 @@ createfile proc near
     mov  dx, offset execfile
     int  21h
 	mov exechandle, ax
-    ret	
+	
+	ret	
 createfile endp
 
 init_runtime proc near
+		
+	mov bx, exechandle
+	mov ax, 4000h
+	mov cx, end_runtime - begin_runtime
+	lea dx, begin_runtime
+	int 21h
+   
 	mov ax, address_pointer
-	add ax, BIAS
+	mov cx, end_runtime - begin_runtime 
+	add ax, cx
 	mov address_pointer, ax
-	mov ax,	4000h 
-    mov bx, exechandle 
-    mov cx, 2 
-    lea dx, JMP_RUNTIME
-    int 21h ; write 'eb33' to the created com-file -- jmp to the real code
+	
 	mov ax, 4200h
 	xor cx, cx;
 	mov dx, address_pointer
 	sub dx, 100h ; if dos file is loaded to 100h
 	mov bx, exechandle
 	int 21h; set file pointer, skip 52 bytes for vars
+	
 init_runtime endp
 
 readfile proc near
@@ -79,16 +139,32 @@ eoff:    ret
 readfile endp
 
 proc_symbol proc near
-	cmp fbuff, 22H ;22H -- "
+	cmp fbuff, 22h ;22H -- "
 	jz call_proc_quotation
-	cmp flags, 01H;
+	cmp flags, 01h;
 	jz call_generate_string
-	cmp fbuff, 60H
+	cmp fbuff, 3Ah ;3Ah -- :
+	jz call_proc_colon
+	cmp fbuff, 3Bh
+	jz call_proc_semicolon
+	cmp fbuff, 60h ; 61 -- a
 	ja check_is_var
-is_not_var:
+	cmp fbuff, 2Fh; 30 -- 0
+	ja check_is_num
+default:
 	mov  ah,2
     int  21H 
 	ret
+
+check_is_var:
+	cmp fbuff, 7Bh
+	jb call_proc_var
+	jmp default
+
+check_is_num:
+	cmp fbuff, 3Ah
+	jb call_proc_num
+	jmp default
 	
 call_proc_quotation: 
     call proc_quotation
@@ -97,13 +173,23 @@ call_proc_quotation:
 call_generate_string: 
 	call generate_string
 	ret
-check_is_var:
-	cmp fbuff, 7Bh
-	jb call_proc_var
-	jmp is_not_var
+	
 call_proc_var:
 	call proc_var
 	ret
+		
+call_proc_num:
+	call proc_num
+	ret
+	
+call_proc_colon:
+	call proc_colon
+	ret
+	
+call_proc_semicolon:
+	call proc_semicolon
+	ret
+	
 proc_symbol endp
 
 proc_quotation proc near
@@ -197,13 +283,86 @@ generate_string proc near
 generate_string endp
 
 proc_var proc near
-	;mov dx, 300H; let vars be here 300H -> 'a', 302H -> 'b', ...
-	;mov bx, fbuff;
-	;sub bx, 61H; 
-	;mul bx, 2
-	;add dx, bx; now dx contains address of var
+	
+	xor ax, ax;
+	mov al, fbuff;
+	sub al, 61H;
+	mov bx, 0002H;
+	mul bx	;
+	add al, vars_offset;
+	
+	call runtime_push
+	
+	mov bx, exechandle
+	mov ax, 4000h
+	mov cx, end_call_runtime_push - call_runtime_push
+	lea dx, call_runtime_push
+	int 21h
+   
+	mov ax, address_pointer
+	mov cx, end_call_runtime_push - call_runtime_push 
+	add ax, cx
+	mov address_pointer, ax
+	
 	ret
 proc_var endp
+
+proc_num proc near
+
+	xor ax, ax;
+	mov al, fbuff;
+	sub al, 30H;
+	mov number, ax;
+	
+	call runtime_push
+	
+	mov bx, exechandle
+	mov ax, 4000h
+	mov cx, end_call_runtime_push - call_runtime_push
+	lea dx, call_runtime_push
+	int 21h
+   
+	mov ax, address_pointer
+	mov cx, end_call_runtime_push - call_runtime_push 
+	add ax, cx
+	mov address_pointer, ax
+	
+	ret
+proc_num endp 
+
+proc_colon proc near
+	call runtime_assign
+	
+	mov bx, exechandle
+	mov ax, 4000h
+	mov cx, end_call_runtime_assign - call_runtime_assign
+	lea dx, call_runtime_assign
+	int 21h
+   
+	mov ax, address_pointer
+	mov cx, end_call_runtime_assign - call_runtime_assign 
+	add ax, cx
+	mov address_pointer, ax
+	
+	ret
+proc_colon endp
+
+proc_semicolon proc near
+	call runtime_get_value
+
+	mov bx, exechandle
+	mov ax, 4000h
+	mov cx, end_call_runtime_get_value - call_runtime_get_value
+	lea dx, call_runtime_get_value
+	int 21h
+   
+	mov ax, address_pointer
+	mov cx, end_call_runtime_get_value - call_runtime_get_value 
+	add ax, cx
+	mov address_pointer, ax
+	
+	ret
+proc_semicolon endp
 
 closefile proc near
 	mov ah,	40h 
