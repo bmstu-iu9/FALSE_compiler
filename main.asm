@@ -19,6 +19,8 @@ OPCODE_JMP  		DB	0EBh, 000H
 OPCODE_MOV_DX		DB  0BAh
 OPCODE_PRINT		DB  0B4h, 009h, 0CDh, 021h
 OPCODE_END			DB  0B4h, 04Ch ,0CDh, 021h
+OPCODE_MOV_AX		DB	0B8h
+OPCODE_CALL_ABS		DB	0FFh, 015h
 
 
 .CODE
@@ -26,24 +28,31 @@ OPCODE_END			DB  0B4h, 04Ch ,0CDh, 021h
 begin_runtime:
 	jmp end_runtime
 	VARS: dw 26 dup(0)
-	mov si, 300h;
 runtime_if:
 	ret
 
 runtime_while:
 	ret
 
-call_runtime_assign:
-	call runtime_assign
+call_runtime_assign: 
+	lea dx, runtime_assign
+	mov [di], dx
 end_call_runtime_assign:
 
 call_runtime_get_value:
-	call runtime_get_value
+	lea dx, runtime_get_value
+	mov [di], dx
 end_call_runtime_get_value:
 
 call_runtime_push:
-	call runtime_push
+	lea dx, runtime_push
+	mov [di], dx
 end_call_runtime_push:
+
+call_runtime_print_top_stack:
+	lea dx, runtime_print_top_stack
+	mov [di], dx
+end_call_runtime_print_top_stack:
 	
 runtime_assign proc near
 	mov di, bx;
@@ -60,7 +69,7 @@ runtime_get_value proc near
 	ret
 runtime_get_value endp
 	
-runtime_push proc near ;push ax value to the stack
+runtime_push proc near ;pushes ax value to the stack
 	inc si;
 	mov bx, ax
 	mov [si], ax;
@@ -72,6 +81,13 @@ runtime_pop proc near
 	mov bx, [si]
 	ret
 runtime_pop endp
+
+runtime_print_top_stack proc near
+	mov  ah,2
+	mov  dx, bx
+    int  21H 
+	ret
+runtime_print_top_stack endp
 	
 end_runtime:
 
@@ -147,6 +163,8 @@ proc_symbol proc near
 	jz call_proc_colon
 	cmp fbuff, 3Bh
 	jz call_proc_semicolon
+	cmp fbuff, 2Eh
+	jz call_proc_dot
 	cmp fbuff, 60h ; 61 -- a
 	ja check_is_var
 	cmp fbuff, 2Fh; 30 -- 0
@@ -188,6 +206,10 @@ call_proc_colon:
 	
 call_proc_semicolon:
 	call proc_semicolon
+	ret
+	
+call_proc_dot:
+	call proc_dot
 	ret
 	
 proc_symbol endp
@@ -245,7 +267,7 @@ end_string:
 	mov bx, exechandle
 	mov ax,	4000h
 	mov cx, 1
-	int 21h ; write backtraceing
+	int 21h ; write backtracing
 	
 	mov ax, 4202h
 	xor cx, cx;
@@ -288,21 +310,29 @@ proc_var proc near
 	mov al, fbuff;
 	sub al, 61H;
 	mov bx, 0002H;
-	mul bx	;
+	mul bx
 	add al, vars_offset;
-	
-	call runtime_push
+	mov number, ax
 	
 	mov bx, exechandle
+	mov ax, 4000h
+	mov cx, 1
+	lea dx, OPCODE_MOV_AX
+	int 21h
+	
+	mov bx, exechandle
+	mov ax, 4000h
+	mov cx, 2
+	lea dx, number
+	int 21h
+	add address_pointer, 3
+	
 	mov ax, 4000h
 	mov cx, end_call_runtime_push - call_runtime_push
 	lea dx, call_runtime_push
 	int 21h
-   
-	mov ax, address_pointer
-	mov cx, end_call_runtime_push - call_runtime_push 
-	add ax, cx
-	mov address_pointer, ax
+	add address_pointer, cx
+	
 	
 	ret
 proc_var endp
@@ -314,55 +344,86 @@ proc_num proc near
 	sub al, 30H;
 	mov number, ax;
 	
-	call runtime_push
+	mov bx, exechandle
+	mov ax, 4000h
+	mov cx, 1
+	lea dx, OPCODE_MOV_AX
+	int 21h
 	
 	mov bx, exechandle
+	mov ax, 4000h
+	mov cx, 2
+	lea dx, number
+	int 21h
+	
+	add address_pointer, 3
+	
 	mov ax, 4000h
 	mov cx, end_call_runtime_push - call_runtime_push
 	lea dx, call_runtime_push
 	int 21h
-   
-	mov ax, address_pointer
-	mov cx, end_call_runtime_push - call_runtime_push 
-	add ax, cx
-	mov address_pointer, ax
+	add address_pointer, cx
+	
+	mov ax, 4000h
+	mov cx, 2
+	lea dx, OPCODE_CALL_ABS
+	int 21h
+	add address_pointer, 2
 	
 	ret
 proc_num endp 
 
 proc_colon proc near
-	call runtime_assign
 	
-	mov bx, exechandle
 	mov ax, 4000h
 	mov cx, end_call_runtime_assign - call_runtime_assign
 	lea dx, call_runtime_assign
 	int 21h
-   
-	mov ax, address_pointer
-	mov cx, end_call_runtime_assign - call_runtime_assign 
-	add ax, cx
-	mov address_pointer, ax
+	add address_pointer, cx
+	
+	mov ax, 4000h
+	mov cx, 2
+	lea dx, OPCODE_CALL_ABS
+	int 21h
+	add address_pointer, 2
 	
 	ret
 proc_colon endp
 
 proc_semicolon proc near
-	call runtime_get_value
-
-	mov bx, exechandle
+	
 	mov ax, 4000h
 	mov cx, end_call_runtime_get_value - call_runtime_get_value
 	lea dx, call_runtime_get_value
 	int 21h
-   
-	mov ax, address_pointer
-	mov cx, end_call_runtime_get_value - call_runtime_get_value 
-	add ax, cx
-	mov address_pointer, ax
+	add address_pointer, cx
+	
+	mov ax, 4000h
+	mov cx, 2
+	lea dx, OPCODE_CALL_ABS
+	int 21h
+	add address_pointer, 2
+	
 	
 	ret
 proc_semicolon endp
+
+proc_dot proc near
+
+	mov ax, 4000h
+	mov cx, end_call_runtime_print_top_stack - call_runtime_print_top_stack
+	lea dx, call_runtime_print_top_stack
+	int 21h
+	add address_pointer, cx
+	
+	mov ax, 4000h
+	mov cx, 2
+	lea dx, OPCODE_CALL_ABS
+	int 21h
+	add address_pointer, 2
+
+	ret
+proc_dot endp
 
 closefile proc near
 	mov ah,	40h 
