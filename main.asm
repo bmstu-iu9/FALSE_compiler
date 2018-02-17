@@ -12,7 +12,7 @@ flags      			DB	0
 jmp_labels  		DW	32 dup(?)
 jmp_labels_pointer 	DW	0
 jmp_offset			DW  0
-vars_offset			DB 	3
+vars_offset			DW 	104h
 
 OPCODE_EOF			DB  '$'
 OPCODE_JMP  		DB	0EBh, 000H
@@ -35,22 +35,26 @@ runtime_if:
 runtime_while:
 	ret
 
-call_runtime_assign: ;хуета, переделать (!) метка относительная в call, а не абсолютная
+call_runtime_assign:
+	xor di, di
 	lea dx, runtime_assign
 	mov [di], dx
 end_call_runtime_assign:
 
 call_runtime_get_value:
+	xor di, di
 	lea dx, runtime_get_value
 	mov [di], dx
 end_call_runtime_get_value:
 
 call_runtime_push:
+	xor di, di
 	lea dx, runtime_push
 	mov [di], dx
 end_call_runtime_push:
 
 call_runtime_print_top_stack:
+	xor di, di
 	lea dx, runtime_print_top_stack
 	mov [di], dx
 end_call_runtime_print_top_stack:
@@ -313,7 +317,7 @@ proc_var proc near
 	sub al, 61H;
 	mov bx, 0002H;
 	mul bx
-	add al, vars_offset;
+	add ax, vars_offset;
 	mov number, ax
 	
 	mov bx, exechandle
@@ -334,6 +338,12 @@ proc_var proc near
 	lea dx, call_runtime_push
 	int 21h
 	add address_pointer, cx
+	
+	mov ax, 4000h
+	mov cx, 2
+	lea dx, OPCODE_CALL_ABS
+	int 21h
+	add address_pointer, 2
 	
 	ret
 proc_var endp
