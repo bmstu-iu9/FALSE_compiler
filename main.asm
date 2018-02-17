@@ -28,13 +28,14 @@ OPCODE_CALL_ABS		DB	0FFh, 015h
 begin_runtime:
 	jmp end_runtime
 	VARS: dw 26 dup(0)
+	mov si, 300h;
 runtime_if:
 	ret
 
 runtime_while:
 	ret
 
-call_runtime_assign: 
+call_runtime_assign: ;хуета, переделать (!) метка относительная в call, а не абсолютная
 	lea dx, runtime_assign
 	mov [di], dx
 end_call_runtime_assign:
@@ -70,14 +71,14 @@ runtime_get_value proc near
 runtime_get_value endp
 	
 runtime_push proc near ;pushes ax value to the stack
-	inc si;
+	add si, 2;
 	mov bx, ax
 	mov [si], ax;
 	ret
 runtime_push endp
 
 runtime_pop proc near
-	dec si
+	sub si, 2
 	mov bx, [si]
 	ret
 runtime_pop endp
@@ -85,6 +86,7 @@ runtime_pop endp
 runtime_print_top_stack proc near
 	mov  ah,2
 	mov  dx, bx
+	add  dx, 30h
     int  21H 
 	ret
 runtime_print_top_stack endp
@@ -143,7 +145,7 @@ readfile proc near
          mov  bx,handle      
          lea  dx,fbuff       
          mov  cx,1           
-         int  21H            
+         int  21H            	
          cmp  ax,0           
          jz   eoff           
          mov  dl,fbuff       
@@ -333,7 +335,6 @@ proc_var proc near
 	int 21h
 	add address_pointer, cx
 	
-	
 	ret
 proc_var endp
 
@@ -376,6 +377,7 @@ proc_num endp
 proc_colon proc near
 	
 	mov ax, 4000h
+	mov bx, exechandle
 	mov cx, end_call_runtime_assign - call_runtime_assign
 	lea dx, call_runtime_assign
 	int 21h
@@ -393,6 +395,7 @@ proc_colon endp
 proc_semicolon proc near
 	
 	mov ax, 4000h
+	mov bx, exechandle
 	mov cx, end_call_runtime_get_value - call_runtime_get_value
 	lea dx, call_runtime_get_value
 	int 21h
@@ -411,6 +414,7 @@ proc_semicolon endp
 proc_dot proc near
 
 	mov ax, 4000h
+	mov bx, exechandle
 	mov cx, end_call_runtime_print_top_stack - call_runtime_print_top_stack
 	lea dx, call_runtime_print_top_stack
 	int 21h
