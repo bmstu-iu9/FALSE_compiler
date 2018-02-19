@@ -21,6 +21,7 @@ OPCODE_PRINT		DB  0B4h, 009h, 0CDh, 021h
 OPCODE_END			DB  0B4h, 04Ch ,0CDh, 021h
 OPCODE_MOV_AX		DB	0B8h
 OPCODE_CALL_ABS		DB	0FFh, 015h
+OPCODE_RET			DB 	0C3h
 
 
 .CODE
@@ -171,6 +172,10 @@ proc_symbol proc near
 	jz call_proc_semicolon
 	cmp fbuff, 2Eh
 	jz call_proc_dot
+	cmp fbuff, 5Bh ; -- [
+	jz call_proc_begin
+	cmp fbuff, 5Dh ; -- ]
+	jz call_proc_end
 	cmp fbuff, 60h ; 61 -- a
 	ja check_is_var
 	cmp fbuff, 2Fh; 30 -- 0
@@ -216,6 +221,14 @@ call_proc_semicolon:
 	
 call_proc_dot:
 	call proc_dot
+	ret
+	
+call_proc_begin:
+	call proc_begin
+	ret
+	
+call_proc_end:
+	call proc_end
 	ret
 	
 proc_symbol endp
@@ -438,6 +451,93 @@ proc_dot proc near
 
 	ret
 proc_dot endp
+
+proc_begin proc near
+
+	mov ah,	40h 
+    mov bx, exechandle 
+    mov cx, 2 
+    lea dx, OPCODE_JMP
+    int 21h ; write 'eb00' to the com-file
+	add address_pointer, 2h;
+	mov si, jmp_labels_pointer;
+	mov bx, address_pointer;
+	dec bx;
+	mov jmp_labels[si], bx;  move to the stack of labels current address for backtracing
+	add jmp_labels_pointer, 2
+	ret;
+
+	ret
+proc_begin endp
+
+proc_end proc near
+
+	mov ah,	40h 
+    mov bx, exechandle 
+    mov cx, 1
+	lea dx, OPCODE_RET
+	int 21h;
+	add address_pointer, 1h;
+	
+	sub jmp_labels_pointer, 2; backtracing
+	mov ax, 4200h
+	xor cx, cx;
+	mov si, jmp_labels_pointer
+	lea bx, jmp_labels[si]
+	mov dx, [bx]
+	sub dx, 100h
+	mov bx, exechandle
+	int 21h; set file pointer to the unset jmp_label 
+	
+	mov si, jmp_labels_pointer;
+	lea bx, jmp_labels[si]
+	mov ax, address_pointer
+	sub ax, [bx];
+	dec ax
+	mov jmp_offset, ax;
+	lea dx, jmp_offset
+	mov bx, exechandle
+	mov ax,	4000h
+	mov cx, 1
+	int 21h ; write backtracing
+	
+	mov ax, 4202h
+	xor cx, cx;
+	xor dx, dx;
+	int 21h; return file pointer back to the eof
+
+	;datapush address
+	mov ax, jmp_labels[si]
+	mov number, ax
+	
+	mov bx, exechandle
+	mov ax, 4000h
+	mov cx, 1
+	lea dx, OPCODE_MOV_AX
+	int 21h
+	
+	mov bx, exechandle
+	mov ax, 4000h
+	mov cx, 2
+	lea dx, number
+	int 21h
+	
+	add address_pointer, 3
+	
+	mov ax, 4000h
+	mov cx, end_call_runtime_push - call_runtime_push
+	lea dx, call_runtime_push
+	int 21h
+	add address_pointer, cx
+	
+	mov ax, 4000h
+	mov cx, 2
+	lea dx, OPCODE_CALL_ABS
+	int 21h
+	add address_pointer, 2
+	
+	ret
+proc_end endp
 
 closefile proc near
 	mov ah,	40h 
