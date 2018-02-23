@@ -21,6 +21,7 @@ OPCODE_PRINT		DB  0B4h, 009h, 0CDh, 021h
 OPCODE_END			DB  0B4h, 04Ch ,0CDh, 021h
 OPCODE_MOV_AX		DB	0B8h
 OPCODE_CALL_ABS		DB	0FFh, 015h
+OPCODE_XOR_MOV_DI	DB	033h, 0FFh, 089h, 01Dh, 083h, 0EEh, 002h, 08Bh, 01Ch
 OPCODE_RET			DB 	0C3h
 
 
@@ -70,6 +71,7 @@ runtime_assign endp
 
 runtime_get_value proc near
 	mov di, bx
+	call runtime_pop
 	mov ax, [di]
 	call runtime_push
 	ret
@@ -176,6 +178,8 @@ proc_symbol proc near
 	jz call_proc_begin
 	cmp fbuff, 5Dh ; -- ]
 	jz call_proc_end
+	cmp fbuff, 21h ; -- !
+	jz call_proc_apply
 	cmp fbuff, 60h ; 61 -- a
 	ja check_is_var
 	cmp fbuff, 2Fh; 30 -- 0
@@ -229,6 +233,10 @@ call_proc_begin:
 	
 call_proc_end:
 	call proc_end
+	ret
+
+call_proc_apply:
+	call proc_apply
 	ret
 	
 proc_symbol endp
@@ -508,6 +516,7 @@ proc_end proc near
 
 	;datapush address
 	mov ax, jmp_labels[si]
+	inc ax
 	mov number, ax
 	
 	mov bx, exechandle
@@ -538,6 +547,24 @@ proc_end proc near
 	
 	ret
 proc_end endp
+
+proc_apply proc near
+	mov ax, 4000h
+	mov bx, exechandle
+	mov cx, 9
+	lea dx, OPCODE_XOR_MOV_DI
+	int 21h
+	add address_pointer, 9
+	
+	mov ax, 4000h
+	mov bx, exechandle
+	mov cx, 2
+	lea dx, OPCODE_CALL_ABS
+	int 21h
+	add address_pointer, 2
+	ret
+	
+proc_apply endp
 
 closefile proc near
 	mov ah,	40h 
