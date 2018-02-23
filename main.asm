@@ -30,13 +30,28 @@ OPCODE_RET			DB 	0C3h
 begin_runtime:
 	jmp end_runtime
 	VARS: dw 26 dup(0)
-	mov si, 300h;
-runtime_if:
+
+runtime_if proc near
+	mov di, bx
+	call runtime_pop
+	cmp bx, 0
+	jnz call_lambda
 	ret
 
+call_lambda:
+	call near ptr di
+	ret	
+runtime_if endp
+	
 runtime_while:
 	ret
 
+call_runtime_if:
+	xor di, di
+	lea dx, runtime_if
+	mov [di], dx
+end_call_runtime_if:
+	
 call_runtime_assign:
 	xor di, di
 	lea dx, runtime_assign
@@ -60,6 +75,12 @@ call_runtime_print_top_stack:
 	lea dx, runtime_print_top_stack
 	mov [di], dx
 end_call_runtime_print_top_stack:
+
+call_runtime_eq:
+	xor di, di
+	lea dx, runtime_eq
+	mov [di], dx
+end_call_runtime_eq:
 	
 runtime_assign proc near
 	mov di, bx;
@@ -97,6 +118,22 @@ runtime_print_top_stack proc near
     int  21H 
 	ret
 runtime_print_top_stack endp
+
+runtime_eq proc near
+	mov ax, bx
+	call runtime_pop
+	cmp ax, bx
+	jz	push_true
+	mov ax, 0
+	push_value:
+	call runtime_pop
+	call runtime_push
+	ret
+	
+	push_true:
+		mov ax, 1
+		jmp push_value
+runtime_eq endp
 	
 end_runtime:
 
@@ -180,6 +217,10 @@ proc_symbol proc near
 	jz call_proc_end
 	cmp fbuff, 21h ; -- !
 	jz call_proc_apply
+	cmp fbuff, 3Dh ; -- =
+	jz call_proc_eq
+	cmp fbuff, 3Fh ; -- ?
+	jz call_proc_if
 	cmp fbuff, 60h ; 61 -- a
 	ja check_is_var
 	cmp fbuff, 2Fh; 30 -- 0
@@ -237,6 +278,14 @@ call_proc_end:
 
 call_proc_apply:
 	call proc_apply
+	ret
+
+call_proc_eq:	
+	call proc_eq
+	ret
+	
+call_proc_if:
+	call proc_if
 	ret
 	
 proc_symbol endp
@@ -565,6 +614,45 @@ proc_apply proc near
 	ret
 	
 proc_apply endp
+
+proc_eq proc near
+
+	mov ax, 4000h
+	mov bx, exechandle
+	mov cx, end_call_runtime_eq - call_runtime_eq
+	lea dx, call_runtime_eq
+	int 21h
+	add address_pointer, cx
+
+	mov ax, 4000h
+	mov bx, exechandle
+	mov cx, 2
+	lea dx, OPCODE_CALL_ABS
+	int 21h
+	add address_pointer, 2
+	ret
+
+proc_eq endp
+
+proc_if proc near
+
+	mov ax, 4000h
+	mov bx, exechandle
+	mov cx, end_call_runtime_if - call_runtime_if
+	lea dx, call_runtime_if
+	int 21h
+	add address_pointer, cx
+
+	mov ax, 4000h
+	mov bx, exechandle
+	mov cx, 2
+	lea dx, OPCODE_CALL_ABS
+	int 21h
+	add address_pointer, 2
+	ret
+
+	ret
+proc_if endp
 
 closefile proc near
 	mov ah,	40h 
