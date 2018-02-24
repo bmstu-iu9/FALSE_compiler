@@ -105,6 +105,20 @@ call_runtime_eq:
 	lea dx, runtime_eq
 	mov [di], dx
 end_call_runtime_eq:
+
+call_runtime_add:
+	xor di, di
+	lea dx, runtime_add
+	mov [di], dx
+end_call_runtime_add:
+	
+runtime_add proc near
+	mov ax, bx
+	call runtime_pop
+	add ax, bx
+	call runtime_push
+	ret
+runtime_add endp
 	
 runtime_assign proc near
 	mov di, bx;
@@ -247,6 +261,8 @@ proc_symbol proc near
 	jz call_proc_if
 	cmp fbuff, 23h ; -- #
 	jz call_proc_while
+	cmp fbuff, 2Bh
+	jz call_proc_add
 	cmp fbuff, 60h ; 61 -- a
 	ja check_is_var
 	cmp fbuff, 2Fh; 30 -- 0
@@ -316,6 +332,10 @@ call_proc_if:
 	
 call_proc_while:
 	call proc_while
+	ret
+	
+call_proc_add:
+	call proc_add
 	ret
 	
 proc_symbol endp
@@ -433,19 +453,9 @@ proc_var proc near
 	int 21h
 	add address_pointer, 3
 	
-	mov ax, 4000h
-	mov cx, end_call_runtime_push - call_runtime_push
-	lea dx, call_runtime_push
-	int 21h
-	add address_pointer, cx
-	
-	mov ax, 4000h
-	mov cx, 2
-	lea dx, OPCODE_CALL_ABS
-	int 21h
-	add address_pointer, 2
-	
+	call _push
 	ret
+	
 proc_var endp
 
 proc_num proc near
@@ -469,74 +479,36 @@ proc_num proc near
 	
 	add address_pointer, 3
 	
-	mov ax, 4000h
-	mov cx, end_call_runtime_push - call_runtime_push
-	lea dx, call_runtime_push
-	int 21h
-	add address_pointer, cx
-	
-	mov ax, 4000h
-	mov cx, 2
-	lea dx, OPCODE_CALL_ABS
-	int 21h
-	add address_pointer, 2
-	
+	call _push
 	ret
+	
 proc_num endp 
 
 proc_colon proc near
 	
-	mov ax, 4000h
-	mov bx, exechandle
 	mov cx, end_call_runtime_assign - call_runtime_assign
 	lea dx, call_runtime_assign
-	int 21h
-	add address_pointer, cx
-	
-	mov ax, 4000h
-	mov cx, 2
-	lea dx, OPCODE_CALL_ABS
-	int 21h
-	add address_pointer, 2
-	
+	call write_call
 	ret
+	
 proc_colon endp
 
 proc_semicolon proc near
 	
-	mov ax, 4000h
-	mov bx, exechandle
 	mov cx, end_call_runtime_get_value - call_runtime_get_value
 	lea dx, call_runtime_get_value
-	int 21h
-	add address_pointer, cx
-	
-	mov ax, 4000h
-	mov cx, 2
-	lea dx, OPCODE_CALL_ABS
-	int 21h
-	add address_pointer, 2
-	
-	
+	call write_call
 	ret
+	
 proc_semicolon endp
 
 proc_dot proc near
 
-	mov ax, 4000h
-	mov bx, exechandle
 	mov cx, end_call_runtime_print_top_stack - call_runtime_print_top_stack
 	lea dx, call_runtime_print_top_stack
-	int 21h
-	add address_pointer, cx
-	
-	mov ax, 4000h
-	mov cx, 2
-	lea dx, OPCODE_CALL_ABS
-	int 21h
-	add address_pointer, 2
-
+	call write_call
 	ret
+	
 proc_dot endp
 
 proc_begin proc near
@@ -612,19 +584,9 @@ proc_end proc near
 	
 	add address_pointer, 3
 	
-	mov ax, 4000h
-	mov cx, end_call_runtime_push - call_runtime_push
-	lea dx, call_runtime_push
-	int 21h
-	add address_pointer, cx
-	
-	mov ax, 4000h
-	mov cx, 2
-	lea dx, OPCODE_CALL_ABS
-	int 21h
-	add address_pointer, 2
-	
+	call _push
 	ret
+
 proc_end endp
 
 proc_apply proc near
@@ -646,62 +608,53 @@ proc_apply proc near
 proc_apply endp
 
 proc_eq proc near
-
-	mov ax, 4000h
-	mov bx, exechandle
 	mov cx, end_call_runtime_eq - call_runtime_eq
 	lea dx, call_runtime_eq
-	int 21h
-	add address_pointer, cx
-
-	mov ax, 4000h
-	mov bx, exechandle
-	mov cx, 2
-	lea dx, OPCODE_CALL_ABS
-	int 21h
-	add address_pointer, 2
+	call write_call
 	ret
-
 proc_eq endp
 
 proc_if proc near
-
-	mov ax, 4000h
-	mov bx, exechandle
 	mov cx, end_call_runtime_if - call_runtime_if
 	lea dx, call_runtime_if
-	int 21h
-	add address_pointer, cx
-
-	mov ax, 4000h
-	mov bx, exechandle
-	mov cx, 2
-	lea dx, OPCODE_CALL_ABS
-	int 21h
-	add address_pointer, 2
-	ret
-
+	call write_call
 	ret
 proc_if endp
 
 proc_while proc near
-	mov ax, 4000h
-	mov bx, exechandle
 	mov cx, end_call_runtime_while - call_runtime_while
 	lea dx, call_runtime_while
-	int 21h
-	add address_pointer, cx
+	call write_call
+	ret
+proc_while endp
 
+proc_add proc near
+	mov cx, end_call_runtime_add - call_runtime_add
+	lea dx, call_runtime_add
+	call write_call
+	ret
+proc_add endp
+
+write_call proc near
 	mov ax, 4000h
 	mov bx, exechandle
+	int 21h
+	add address_pointer, cx
+	
+	mov ax, 4000h
 	mov cx, 2
 	lea dx, OPCODE_CALL_ABS
 	int 21h
-	add address_pointer, 2
+	add address_pointer, cx
 	ret
+write_call endp
 
+_push proc near
+	mov cx, end_call_runtime_push - call_runtime_push
+	lea dx, call_runtime_push
+	call write_call
 	ret
-proc_while endp
+_push endp
 
 closefile proc near
 	mov ah,	40h 
@@ -720,4 +673,3 @@ closefile endp
 
 END
 
-;ограничение на размер рантайма!!!
