@@ -13,6 +13,8 @@ jmp_labels  		DW	32 dup(?)
 jmp_labels_pointer 	DW	0
 jmp_offset			DW  0
 vars_offset			DW 	104h
+cond 				DW  ?
+body 				DW  ?
 
 OPCODE_EOF			DB  '$'
 OPCODE_JMP  		DB	0EBh, 000H
@@ -43,14 +45,36 @@ call_lambda:
 	ret	
 runtime_if endp
 	
-runtime_while:
+runtime_while proc near
+	mov body, bx
+	call runtime_pop
+	mov cond, bx
+	call runtime_pop
+_loop:
+	mov di, cond
+	call near ptr di
+	cmp bx, 0
+	jnz call_body
 	ret
+
+call_body:
+	mov di, body
+	call near ptr di
+	jmp _loop
+
+runtime_while endp
 
 call_runtime_if:
 	xor di, di
 	lea dx, runtime_if
 	mov [di], dx
 end_call_runtime_if:
+
+call_runtime_while:
+	xor di, di
+	lea dx, runtime_while
+	mov [di], dx
+end_call_runtime_while:
 	
 call_runtime_assign:
 	xor di, di
@@ -221,6 +245,8 @@ proc_symbol proc near
 	jz call_proc_eq
 	cmp fbuff, 3Fh ; -- ?
 	jz call_proc_if
+	cmp fbuff, 23h ; -- #
+	jz call_proc_while
 	cmp fbuff, 60h ; 61 -- a
 	ja check_is_var
 	cmp fbuff, 2Fh; 30 -- 0
@@ -286,6 +312,10 @@ call_proc_eq:
 	
 call_proc_if:
 	call proc_if
+	ret
+	
+call_proc_while:
+	call proc_while
 	ret
 	
 proc_symbol endp
@@ -653,6 +683,25 @@ proc_if proc near
 
 	ret
 proc_if endp
+
+proc_while proc near
+	mov ax, 4000h
+	mov bx, exechandle
+	mov cx, end_call_runtime_while - call_runtime_while
+	lea dx, call_runtime_while
+	int 21h
+	add address_pointer, cx
+
+	mov ax, 4000h
+	mov bx, exechandle
+	mov cx, 2
+	lea dx, OPCODE_CALL_ABS
+	int 21h
+	add address_pointer, 2
+	ret
+
+	ret
+proc_while endp
 
 closefile proc near
 	mov ah,	40h 
