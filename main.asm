@@ -441,6 +441,23 @@ eoff:    ret
 readfile endp
 
 proc_symbol proc near
+	cmp fbuff, 7Bh
+	jnz _end_comm
+	mov flags, 02h
+	ret
+	
+	_end_comm:
+	cmp fbuff, 7Dh
+	jnz _comm
+	mov flags, 00h
+	ret
+	
+	_comm:
+	cmp flags, 02h
+	jnz _0
+	jmp default
+	
+	_0:
 	cmp fbuff, 22h ;22H -- "
 	jnz _1
 	jmp call_proc_quotation
