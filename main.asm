@@ -33,122 +33,6 @@ begin_runtime:
 	jmp end_runtime
 	VARS: dw 26 dup(0)
 
-call_runtime_add:
-	xor di, di
-	lea dx, runtime_add
-	mov [di], dx
-end_call_runtime_add:
-	
-call_runtime_assign:
-	xor di, di
-	lea dx, runtime_assign
-	mov [di], dx
-end_call_runtime_assign:
-
-call_runtime_div:
-	xor di, di
-	lea dx, runtime_div
-	mov [di], dx
-end_call_runtime_div:
-
-call_runtime_eq:
-	xor di, di
-	lea dx, runtime_eq
-	mov [di], dx
-end_call_runtime_eq:
-
-call_runtime_get_value:
-	xor di, di
-	lea dx, runtime_get_value
-	mov [di], dx
-end_call_runtime_get_value:
-
-call_runtime_if:
-	xor di, di
-	lea dx, runtime_if
-	mov [di], dx
-end_call_runtime_if:
-
-call_runtime_mul:
-	xor di, di
-	lea dx, runtime_mul
-	mov [di], dx
-end_call_runtime_mul:
-
-call_runtime_print_top_stack:
-	xor di, di
-	lea dx, runtime_print_top_stack
-	mov [di], dx
-end_call_runtime_print_top_stack:
-
-call_runtime_push:
-	xor di, di
-	lea dx, runtime_push
-	mov [di], dx
-end_call_runtime_push:
-
-call_runtime_sub:
-	xor di, di
-	lea dx, runtime_sub
-	mov [di], dx
-end_call_runtime_sub:
-
-call_runtime_while:
-	xor di, di
-	lea dx, runtime_while
-	mov [di], dx
-end_call_runtime_while:
-	
-runtime_add proc near
-	mov ax, bx
-	call runtime_pop
-	add ax, bx
-	call runtime_pop
-	call runtime_push
-	ret
-runtime_add endp
-	
-runtime_assign proc near
-	mov di, bx;
-	call runtime_pop
-	mov [di], bx
-	call runtime_pop
-	ret
-runtime_assign endp
-
-runtime_div proc near
-	mov ax, bx
-	call runtime_pop
-	div bl
-	call runtime_pop
-	call runtime_push
-	ret
-runtime_div endp
-
-runtime_eq proc near
-	mov ax, bx
-	call runtime_pop
-	cmp ax, bx
-	jz	push_true
-	mov ax, 0
-	push_value:
-	call runtime_pop
-	call runtime_push
-	ret
-	
-	push_true:
-		mov ax, 1
-		jmp push_value
-runtime_eq endp
-
-runtime_get_value proc near
-	mov di, bx
-	call runtime_pop
-	mov ax, [di]
-	call runtime_push
-	ret
-runtime_get_value endp
-
 runtime_if proc near
 	mov di, bx
 	call runtime_pop
@@ -160,45 +44,6 @@ call_lambda:
 	call near ptr di
 	ret	
 runtime_if endp
-
-runtime_mul proc near
-	mov ax, bx
-	call runtime_pop
-	mul bx
-	call runtime_pop
-	call runtime_push
-	ret
-runtime_mul endp
-
-runtime_pop proc near
-	sub si, 2
-	mov bx, [si]
-	ret
-runtime_pop endp
-
-runtime_print_top_stack proc near
-	mov  ah,2
-	mov  dx, bx
-	add  dx, 30h
-    int  21H 
-	ret
-runtime_print_top_stack endp
-
-runtime_push proc near ;pushes ax value to the stack
-	add si, 2;
-	mov bx, ax
-	mov [si], ax;
-	ret
-runtime_push endp
-
-runtime_sub proc near
-	mov ax, bx
-	call runtime_pop
-	sub ax, bx
-	call runtime_pop
-	call runtime_push
-	ret
-runtime_sub endp
 	
 runtime_while proc near
 	mov body, bx
@@ -217,7 +62,161 @@ call_body:
 	call near ptr di
 	jmp _loop
 
-runtime_while endp	
+runtime_while endp
+
+call_runtime_if:
+	xor di, di
+	lea dx, runtime_if
+	mov [di], dx
+end_call_runtime_if:
+
+call_runtime_while:
+	xor di, di
+	lea dx, runtime_while
+	mov [di], dx
+end_call_runtime_while:
+	
+call_runtime_assign:
+	xor di, di
+	lea dx, runtime_assign
+	mov [di], dx
+end_call_runtime_assign:
+
+call_runtime_get_value:
+	xor di, di
+	lea dx, runtime_get_value
+	mov [di], dx
+end_call_runtime_get_value:
+
+call_runtime_push:
+	xor di, di
+	lea dx, runtime_push
+	mov [di], dx
+end_call_runtime_push:
+
+call_runtime_print_top_stack:
+	xor di, di
+	lea dx, runtime_print_top_stack
+	mov [di], dx
+end_call_runtime_print_top_stack:
+
+call_runtime_eq:
+	xor di, di
+	lea dx, runtime_eq
+	mov [di], dx
+end_call_runtime_eq:
+
+call_runtime_add:
+	xor di, di
+	lea dx, runtime_add
+	mov [di], dx
+end_call_runtime_add:
+
+call_runtime_sub:
+	xor di, di
+	lea dx, runtime_sub
+	mov [di], dx
+end_call_runtime_sub:
+
+call_runtime_mul:
+	xor di, di
+	lea dx, runtime_mul
+	mov [di], dx
+end_call_runtime_mul:
+
+call_runtime_div:
+	xor di, di
+	lea dx, runtime_div
+	mov [di], dx
+end_call_runtime_div:
+	
+runtime_add proc near
+	mov ax, bx
+	call runtime_pop
+	add ax, bx
+	call runtime_push
+	ret
+runtime_add endp
+	
+runtime_assign proc near
+	mov di, bx;
+	call runtime_pop
+	mov [di], bx
+	call runtime_pop
+	ret
+runtime_assign endp
+
+runtime_div proc near
+	mov ax, bx
+	call runtime_pop
+	div bl
+	call runtime_pop
+	call runtime_push
+ 	ret
+runtime_div endp
+
+runtime_mul proc near
+	mov ax, bx
+	call runtime_pop
+	mul bx
+	call runtime_pop
+	call runtime_push
+	ret
+runtime_mul endp
+
+runtime_sub proc near
+	mov ax, bx
+	call runtime_pop
+	sub ax, bx
+	call runtime_pop
+	call runtime_push
+	ret
+runtime_sub endp
+
+runtime_get_value proc near
+	mov di, bx
+	call runtime_pop
+	mov ax, [di]
+	call runtime_push
+	ret
+runtime_get_value endp
+	
+runtime_push proc near ;pushes ax value to the stack
+	add si, 2;
+	mov bx, ax
+	mov [si], ax;
+	ret
+runtime_push endp
+
+runtime_pop proc near
+	sub si, 2
+	mov bx, [si]
+	ret
+runtime_pop endp
+
+runtime_print_top_stack proc near
+	mov  ah,2
+	mov  dx, bx
+	add  dx, 30h
+    int  21H 
+	ret
+runtime_print_top_stack endp
+
+runtime_eq proc near
+	mov ax, bx
+	call runtime_pop
+	cmp ax, bx
+	jz	push_true
+	mov ax, 0
+	push_value:
+	call runtime_pop
+	call runtime_push
+	ret
+	
+	push_true:
+		mov ax, 1
+		jmp push_value
+runtime_eq endp
 	
 end_runtime:
 
@@ -239,7 +238,7 @@ openfile endp
 createfile proc near
     mov  ah, 3ch
     mov  cx, 0
-    lea  dx, execfile
+    mov  dx, offset execfile
     int  21h
 	mov exechandle, ax
 	
@@ -291,7 +290,7 @@ proc_symbol proc near
 	_1:
 	cmp flags, 01h;
 	jnz _2
-	jmp call_generate_string
+	jmp	call_generate_string
 	_2:
 	cmp fbuff, 3Ah ;3Ah -- :
 	jnz _3
@@ -319,7 +318,7 @@ proc_symbol proc near
 	jz call_proc_if
 	cmp fbuff, 23h ; -- #
 	jz call_proc_while
-	cmp fbuff, 2Bh ; -- +
+	cmp fbuff, 2Bh
 	jz call_proc_add
 	cmp fbuff, 2Dh
 	jz call_proc_sub
@@ -345,15 +344,11 @@ check_is_num:
 	cmp fbuff, 3Ah
 	jb call_proc_num
 	jmp default
-
+	
 call_proc_quotation: 
     call proc_quotation
-	ret	
-	
-call_proc_colon:
-	call proc_colon
 	ret
-
+	
 call_generate_string: 
 	call generate_string
 	ret
@@ -364,6 +359,10 @@ call_proc_var:
 		
 call_proc_num:
 	call proc_num
+	ret
+	
+call_proc_colon:
+	call proc_colon
 	ret
 	
 call_proc_semicolon:
@@ -406,13 +405,13 @@ call_proc_sub:
 	call proc_sub
 	ret
 
-call_proc_mul:
-	call proc_mul
-	ret
-
 call_proc_div:
 	call proc_div
 	ret
+
+call_proc_mul:
+	call proc_mul
+	ret	
 	
 proc_symbol endp
 
@@ -502,7 +501,7 @@ generate_string proc near
     mov cx, 1 
     lea dx, fbuff
     int 21h 
-	add address_pointer, 1h
+	add address_pointer, 1h ;address_pointer to the last written byte
 	ret
 generate_string endp
 
