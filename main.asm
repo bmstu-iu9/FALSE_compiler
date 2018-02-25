@@ -64,6 +64,12 @@ call_body:
 
 runtime_while endp
 
+call_runtime_and:
+	xor di, di
+	lea dx, runtime_and
+	mov [di], dx
+end_call_runtime_and:
+	
 call_runtime_if:
 	xor di, di
 	lea dx, runtime_if
@@ -100,6 +106,12 @@ call_runtime_print_top_stack:
 	mov [di], dx
 end_call_runtime_print_top_stack:
 
+call_runtime_or:
+	xor di, di
+	lea dx, runtime_or
+	mov [di], dx
+end_call_runtime_or:
+
 call_runtime_eq:
 	xor di, di
 	lea dx, runtime_eq
@@ -130,13 +142,35 @@ call_runtime_div:
 	mov [di], dx
 end_call_runtime_div:
 	
+call_runtime_neg:
+	xor di, di
+	lea dx, runtime_neg
+	mov [di], dx
+end_call_runtime_neg:
+
+call_runtime_gt:
+	xor di, di
+	lea dx, runtime_gt
+	mov [di], dx
+end_call_runtime_gt:
+	
 runtime_add proc near
 	mov ax, bx
 	call runtime_pop
 	add ax, bx
+	call runtime_pop
 	call runtime_push
 	ret
 runtime_add endp
+
+runtime_and proc near
+	mov ax, bx
+	call runtime_pop
+	and ax, bx
+	call runtime_pop
+	call runtime_push
+	ret
+runtime_and endp
 	
 runtime_assign proc near
 	mov di, bx;
@@ -155,6 +189,18 @@ runtime_div proc near
  	ret
 runtime_div endp
 
+runtime_gt proc near
+	mov ax, bx
+	call runtime_pop
+	cmp ax, bx
+	ja _gt
+	mov ax, 0000h
+	jmp replace
+	_gt:
+	mov ax, 0001h
+	jmp replace
+runtime_gt endp
+
 runtime_mul proc near
 	mov ax, bx
 	call runtime_pop
@@ -163,6 +209,28 @@ runtime_mul proc near
 	call runtime_push
 	ret
 runtime_mul endp
+
+runtime_neg proc near
+	cmp bx, 0000h
+	jz false
+	mov ax, 0000h
+	jmp replace
+	false:
+	mov ax, 0001h
+	replace:
+	call runtime_pop
+	call runtime_push
+	ret
+runtime_neg endp
+
+runtime_or proc near
+	mov ax, bx
+	call runtime_pop
+	or ax, bx
+	call runtime_pop
+	call runtime_push
+	ret
+runtime_or endp
 
 runtime_sub proc near
 	mov ax, bx
@@ -317,19 +385,49 @@ proc_symbol proc near
 	jmp call_proc_apply
 	_8:
 	cmp fbuff, 3Dh ; -- =
-	jz call_proc_eq
+	jnz _9
+	jmp call_proc_eq
+	_9:
 	cmp fbuff, 3Fh ; -- ?
-	jz call_proc_if
+	jnz _10
+	jmp call_proc_if
+	_10:
 	cmp fbuff, 23h ; -- #
-	jz call_proc_while
+	jnz _11
+	jmp call_proc_while
+	_11:
 	cmp fbuff, 2Bh
-	jz call_proc_add
+	jnz _12
+	jmp	call_proc_add
+	_12:
 	cmp fbuff, 2Dh
-	jz call_proc_sub
+	jnz _13 
+	jmp call_proc_sub
+	_13:
 	cmp fbuff, 2Ah
-	jz call_proc_mul
+	jnz _14 
+	jmp call_proc_mul
+	_14:
 	cmp fbuff, 2Fh
-	jz call_proc_div
+	jnz _15
+	jmp call_proc_div
+	_15:
+	cmp fbuff, 7Eh
+	jnz _16
+	jmp call_proc_neg
+	_16:
+	cmp fbuff, 3Eh
+	jnz _17
+	jmp call_proc_gt
+	_17:
+	cmp fbuff, 26h
+	jnz _18
+	jmp call_proc_and
+	_18:
+	cmp fbuff, 7Ch
+	jnz _19
+	jmp call_proc_or
+	_19:
 	cmp fbuff, 60h ; 61 -- a
 	ja check_is_var
 	cmp fbuff, 2Fh; 30 -- 0
@@ -416,6 +514,22 @@ call_proc_div:
 call_proc_mul:
 	call proc_mul
 	ret	
+	
+call_proc_neg:
+	call proc_neg
+	ret
+	
+call_proc_gt:
+	call proc_gt
+	ret
+	
+call_proc_and:
+	call proc_and
+	ret
+
+call_proc_or:
+	call proc_or
+	ret
 	
 proc_symbol endp
 
@@ -734,6 +848,34 @@ proc_div proc near
 	call write_call
 	ret
 proc_div endp
+
+proc_neg proc near
+	mov cx, end_call_runtime_neg - call_runtime_neg
+	lea dx, call_runtime_neg
+	call write_call
+	ret
+proc_neg endp
+
+proc_gt proc near
+	mov cx, end_call_runtime_gt - call_runtime_gt
+	lea dx, call_runtime_gt
+	call write_call
+	ret
+proc_gt endp
+
+proc_and proc near
+	mov cx, end_call_runtime_and - call_runtime_and
+	lea dx, call_runtime_and
+	call write_call
+	ret
+proc_and endp
+
+proc_or proc near
+	mov cx, end_call_runtime_or - call_runtime_or
+	lea dx, call_runtime_or
+	call write_call
+	ret
+proc_or endp
 
 write_call proc near
 	mov ax, 4000h
