@@ -310,9 +310,13 @@ proc_symbol proc near
 	jmp call_proc_begin
 	_6:
 	cmp fbuff, 5Dh ; -- ]
-	jz call_proc_end
+	jnz _7
+	jmp call_proc_end
+	_7:
 	cmp fbuff, 21h ; -- !
-	jz call_proc_apply
+	jnz _8
+	jmp call_proc_apply
+	_8:
 	cmp fbuff, 3Dh ; -- =
 	jz call_proc_eq
 	cmp fbuff, 3Fh ; -- ?
