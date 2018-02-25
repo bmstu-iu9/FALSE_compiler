@@ -71,11 +71,23 @@ call_runtime_and:
 	mov [di], dx
 end_call_runtime_and:
 	
+call_runtime_comma:
+	xor di, di
+	lea dx, runtime_comma
+	mov [di], dx
+end_call_runtime_comma:
+	
 call_runtime_if:
 	xor di, di
 	lea dx, runtime_if
 	mov [di], dx
 end_call_runtime_if:
+
+call_runtime_input:
+	xor di, di
+	lea dx, runtime_input
+	mov [di], dx
+end_call_runtime_input:
 
 call_runtime_pick:
 	xor di, di
@@ -205,6 +217,13 @@ runtime_assign proc near
 	ret
 runtime_assign endp
 
+runtime_comma proc near
+	mov  ah, 2
+	mov  dx, bx
+	int  21H 
+	ret
+runtime_comma endp
+
 runtime_div proc near
 	mov ax, bx
 	call runtime_pop
@@ -225,6 +244,14 @@ runtime_gt proc near
 	mov ax, 0001h
 	jmp replace
 runtime_gt endp
+
+runtime_input proc near
+	mov ah, 01h
+	int 21h
+	mov ah, 00h
+	call runtime_push
+	ret
+runtime_input endp
 
 runtime_mul proc near
 	mov ax, bx
@@ -325,7 +352,7 @@ runtime_pop proc near
 runtime_pop endp
 
 runtime_print_top_stack proc near
-	mov  ah,2
+	mov  ah,2 ;todo: parser
 	mov  dx, bx
 	add  dx, 30h
     int  21H 
@@ -534,6 +561,16 @@ proc_symbol proc near
 	jmp call_proc_pick
 	
 	_24:
+	cmp fbuff, 2Ch
+	jnz _25
+	jmp call_proc_comma
+	
+	_25:
+	cmp fbuff, 5Eh
+	jnz _26
+	jmp call_proc_input
+	
+	_26:
 	cmp fbuff, 60h ; 61 -- a
 	ja check_is_var
 	cmp fbuff, 2Fh; 30 -- 0
@@ -655,6 +692,14 @@ call_proc_rot:
 
 call_proc_pick:
 	call proc_pick
+	ret
+	
+call_proc_comma:
+	call proc_comma
+	ret
+	
+call_proc_input:
+	call proc_input
 	ret
 	
 proc_symbol endp
@@ -1042,6 +1087,20 @@ proc_pick proc near
 	call write_call
 	ret
 proc_pick endp
+
+proc_comma proc near
+	mov cx, end_call_runtime_comma - call_runtime_comma
+	lea dx, call_runtime_comma
+	call write_call
+	ret
+proc_comma endp
+
+proc_input proc near
+	mov cx, end_call_runtime_input - call_runtime_input
+	lea dx, call_runtime_input
+	call write_call
+	ret
+proc_input endp
 
 write_call proc near
 	mov ax, 4000h
