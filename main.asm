@@ -7,6 +7,7 @@ exechandle 			DW	?
 handle     			DW	?
 fbuff      			DB	?
 number				DW 	?
+bytes				DB  5 dup(?)
 address_pointer 	DW	100h
 flags      			DB	0
 jmp_labels  		DW	32 dup(?)
@@ -30,6 +31,7 @@ OPCODE_RET			DB 	0C3h
 
 .CODE
 .STARTUP
+xor di, di
 begin_runtime:
 	jmp end_runtime
 	VARS: dw 26 dup(0)
@@ -456,7 +458,7 @@ proc_symbol proc near
 	cmp flags, 02h
 	jnz _0
 	jmp default
-	
+		
 	_0:
 	cmp fbuff, 22h ;22H -- "
 	jnz _1
@@ -464,9 +466,27 @@ proc_symbol proc near
 	
 	_1:
 	cmp flags, 01h;
-	jnz _2
+	jnz _cmp_num
 	jmp	call_generate_string
+
+	;cmp flags 03h
+	;check_is_num
 	
+	_cmp_num:
+	cmp fbuff, 2Fh; 30 -- 0
+	jna _not_num
+	jmp check_is_num
+	
+	_num:
+	mov flags, 03H
+	call proc_num
+	ret
+		
+	_not_num:
+	cmp flags, 03H
+	jnz _2 
+	call parse_num
+	ret
 	_2:
 	cmp fbuff, 3Ah ;3Ah -- :
 	jnz _3
@@ -590,8 +610,6 @@ proc_symbol proc near
 	_26:
 	cmp fbuff, 60h ; 61 -- a
 	ja check_is_var
-	cmp fbuff, 2Fh; 30 -- 0
-	ja check_is_num
 default:
 	mov  ah,2
     int  21H 
@@ -604,8 +622,10 @@ check_is_var:
 
 check_is_num:
 	cmp fbuff, 3Ah
-	jb call_proc_num
-	jmp default
+	jnb _fail
+	jmp _num
+	_fail:
+	jmp _not_num
 	
 call_proc_quotation: 
     call proc_quotation
@@ -841,17 +861,39 @@ proc_var endp
 
 proc_num proc near
 
-	xor ax, ax;
-	mov al, fbuff;
-	sub al, 30H;
-	mov number, ax;
+	mov al, fbuff
+	sub al, 30H
+	mov bytes[di], al
+	inc di
+	ret
 	
+proc_num endp 
+
+parse_num proc near
+	mov flags, 00H ; clear flags
+
 	mov bx, exechandle
 	mov ax, 4000h
 	mov cx, 1
 	lea dx, OPCODE_MOV_AX
 	int 21h
 	
+	xor ax, ax
+	mov dx, 10
+	mov cx, di
+	xor di, di
+	
+	proc_byte:
+	cmp di, cx
+	jz write
+	mov bl, bytes[di]
+	mul dl
+	add ax, bx
+	inc di
+	jmp proc_byte
+	
+	write:
+	mov number, ax
 	mov bx, exechandle
 	mov ax, 4000h
 	mov cx, 2
@@ -861,9 +903,9 @@ proc_num proc near
 	add address_pointer, 3
 	
 	call _push
-	ret
 	
-proc_num endp 
+	ret
+parse_num endp
 
 proc_colon proc near
 	
