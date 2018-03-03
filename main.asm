@@ -7,7 +7,7 @@ exechandle 			DW	?
 handle     			DW	?
 fbuff      			DB	?
 number				DW 	?
-bytes				DB  5 dup(?)
+bytes				DB  6 dup(?)
 address_pointer 	DW	100h
 flags      			DB	0
 jmp_labels  		DW	32 dup(?)
@@ -353,10 +353,27 @@ runtime_pop proc near
 runtime_pop endp
 
 runtime_print_top_stack proc near
-	mov  ah,2 ;todo: parser
-	mov  dx, bx
-	add  dx, 30h
-    int  21H 
+	mov  ah,2 
+	mov  ax, bx
+	mov  di, 6
+	mov	 cx, 10
+	
+	mov bytes[di], '$'
+	
+	itoa:
+	cmp	ax, 0
+	jz	print
+	dec di
+	xor  dx, dx
+	div cx
+	add dl, 30H
+	mov bytes[di], dl
+	jmp itoa
+	
+	print:
+	mov ah, 09h
+	lea dx, bytes[di] 
+	int  21H 
 	ret
 runtime_print_top_stack endp
 
