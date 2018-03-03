@@ -921,7 +921,7 @@ parse_num proc near
 	add address_pointer, 3
 	
 	call _push
-	
+	xor di, di
 	ret
 parse_num endp
 
