@@ -31,7 +31,6 @@ OPCODE_RET			DB 	0C3h
 
 .CODE
 .STARTUP
-xor di, di
 begin_runtime:
 	jmp end_runtime
 	VARS: dw 26 dup(0)
@@ -379,6 +378,7 @@ runtime_eq endp
 	
 end_runtime:
 
+	xor di, di
 	call openfile  
 	call createfile
 	call init_runtime
@@ -887,7 +887,8 @@ parse_num proc near
 	cmp di, cx
 	jz write
 	mov bl, bytes[di]
-	mul dl
+	mul dx
+	mov dx, 10
 	add ax, bx
 	inc di
 	jmp proc_byte
