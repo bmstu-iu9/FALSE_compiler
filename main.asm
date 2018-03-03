@@ -27,6 +27,7 @@ OPCODE_MOV_AX_BX	DB	08Bh, 0C3h
 OPCODE_CALL_ABS		DB	0FFh, 015h
 OPCODE_XOR_MOV_DI	DB	033h, 0FFh, 089h, 01Dh, 083h, 0EEh, 002h, 08Bh, 01Ch
 OPCODE_RET			DB 	0C3h
+OPCODE_INIT_SE 		DB	0BEh, 0AAh, 0AAh
 
 
 .CODE
@@ -191,6 +192,12 @@ call_runtime_gt:
 	lea dx, runtime_gt
 	mov [di], dx
 end_call_runtime_gt:
+
+call_runtime_unary_minus:
+	xor di, di
+	lea dx, runtime_unary_minus
+	mov [di], dx
+end_call_runtime_unary_minus:
 	
 runtime_add proc near
 	mov ax, bx
@@ -392,6 +399,14 @@ runtime_eq proc near
 		mov ax, 1
 		jmp push_value
 runtime_eq endp
+
+runtime_unary_minus proc near
+	mov ax, bx
+	call runtime_pop
+	neg ax
+	call runtime_push
+	ret
+runtime_unary_minus endp
 	
 end_runtime:
 
@@ -429,10 +444,18 @@ init_runtime proc near
 	lea dx, begin_runtime
 	int 21h
    
+	mov bx, exechandle
+	mov ax, 4000h
+	mov cx, 3
+	lea dx, OPCODE_INIT_SE
+	int 21h
+	
 	mov ax, address_pointer
 	mov cx, end_runtime - begin_runtime 
 	add ax, cx
 	mov address_pointer, ax
+	add address_pointer, 3
+	
 	
 	mov ax, 4200h
 	xor cx, cx;
@@ -485,9 +508,6 @@ proc_symbol proc near
 	cmp flags, 01h;
 	jnz _cmp_num
 	jmp	call_generate_string
-
-	;cmp flags 03h
-	;check_is_num
 	
 	_cmp_num:
 	cmp fbuff, 2Fh; 30 -- 0
@@ -625,6 +645,11 @@ proc_symbol proc near
 	jmp call_proc_input
 	
 	_26:
+	cmp fbuff, 5Fh
+	jnz _27
+	jmp call_proc_unary_minus
+	
+	_27:
 	cmp fbuff, 60h ; 61 -- a
 	ja check_is_var
 default:
@@ -754,6 +779,10 @@ call_proc_comma:
 	
 call_proc_input:
 	call proc_input
+	ret
+
+call_proc_unary_minus:
+	call proc_unary_minus
 	ret
 	
 proc_symbol endp
@@ -1178,6 +1207,13 @@ proc_input proc near
 	call write_call
 	ret
 proc_input endp
+
+proc_unary_minus proc near
+	mov cx, end_call_runtime_unary_minus - call_runtime_unary_minus
+	lea dx, call_runtime_unary_minus
+	call write_call
+	ret
+proc_unary_minus endp
 
 write_call proc near
 	mov ax, 4000h
