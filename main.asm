@@ -446,13 +446,10 @@ init_runtime proc near
 	lea dx, OPCODE_INIT_SE
 	call write
 	
-	mov ax, 4200h
-	xor cx, cx;
 	mov dx, address_pointer
 	sub dx, 100h 
-	mov bx, exechandle
-	int 21h; set file pointer, skip 52 bytes for vars
-	
+	call set_fp
+	ret
 init_runtime endp
 
 readfile proc near
@@ -818,13 +815,12 @@ end_string:
 	call write
 	
 	dec jmp_labels_pointer; backtracing
-	mov ax, 4200h
-	xor cx, cx;
+
 	lea bx, jmp_labels[si]
 	mov dx, [bx]
 	sub dx, 100h
-	mov bx, exechandle
-	int 21h; set file pointer to the unset jmp_label dx should contain 35(!) then 40
+	
+	call set_fp
 	
 	mov si, jmp_labels_pointer;
 	lea bx, jmp_labels[si]
@@ -938,14 +934,12 @@ proc_end proc near
 	call write
 	
 	sub jmp_labels_pointer, 2; backtracing
-	mov ax, 4200h
-	xor cx, cx;
 	mov si, jmp_labels_pointer
 	lea bx, jmp_labels[si]
 	mov dx, [bx]
 	sub dx, 100h
-	mov bx, exechandle
-	int 21h; set file pointer to the unset jmp_label 
+	
+	call set_fp
 	
 	mov si, jmp_labels_pointer;
 	lea bx, jmp_labels[si]
@@ -1012,6 +1006,14 @@ ret_fp proc near
 	int 21h; return file pointer back to the eof
 	ret
 ret_fp endp
+
+set_fp proc near
+	mov bx, exechandle
+	mov ax, 4200h
+	xor cx, cx;
+	int 21h
+	ret
+set_fp endp
 
 closefile proc near
 	mov cx, 4 
