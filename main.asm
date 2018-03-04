@@ -460,7 +460,7 @@ init_runtime proc near
 	mov ax, 4200h
 	xor cx, cx;
 	mov dx, address_pointer
-	sub dx, 100h ; if dos file is loaded to 100h
+	sub dx, 100h 
 	mov bx, exechandle
 	int 21h; set file pointer, skip 52 bytes for vars
 	
@@ -524,25 +524,51 @@ proc_symbol proc near
 	jnz _2 
 	call parse_num
 	ret
+	
 	_2:
 	cmp fbuff, 3Ah ;3Ah -- :
 	jnz _3
-	jmp call_proc_colon
+	
+	mov cx, end_call_runtime_assign - call_runtime_assign
+	lea dx, call_runtime_assign
+	call write_call
+	ret
 	
 	_3:
 	cmp fbuff, 3Bh
 	jnz _4
-	jmp call_proc_semicolon
+	
+	mov cx, end_call_runtime_get_value - call_runtime_get_value
+	lea dx, call_runtime_get_value
+	call write_call
+	ret
 	
 	_4:
 	cmp fbuff, 2Eh
 	jnz _5
-	jmp call_proc_dot
+	
+	mov cx, end_call_runtime_print_top_stack - call_runtime_print_top_stack
+	lea dx, call_runtime_print_top_stack
+	call write_call
+	ret
 	
 	_5:
 	cmp fbuff, 5Bh ; -- [
 	jnz _6
-	jmp call_proc_begin
+	
+	mov ah,	40h 
+    mov bx, exechandle 
+    mov cx, 2 
+    lea dx, OPCODE_JMP
+    int 21h ; write 'eb00' to the com-file
+	add address_pointer, 2h;
+	mov si, jmp_labels_pointer;
+	mov bx, address_pointer;
+	dec bx;
+	mov jmp_labels[si], bx;  move to the stack of labels current address for backtracing
+	add jmp_labels_pointer, 2
+	ret;
+
 	
 	_6:
 	cmp fbuff, 5Dh ; -- ]
@@ -552,102 +578,196 @@ proc_symbol proc near
 	_7:
 	cmp fbuff, 21h ; -- !
 	jnz _8
-	jmp call_proc_apply
+	
+	mov ax, 4000h
+	mov bx, exechandle
+	mov cx, 9
+	lea dx, OPCODE_XOR_MOV_DI
+	int 21h
+	add address_pointer, 9
+	
+	mov ax, 4000h
+	mov bx, exechandle
+	mov cx, 2
+	lea dx, OPCODE_CALL_ABS
+	int 21h
+	add address_pointer, 2
+	ret
 	
 	_8:
 	cmp fbuff, 3Dh ; -- =
 	jnz _9
-	jmp call_proc_eq
+	
+	mov cx, end_call_runtime_eq - call_runtime_eq
+	lea dx, call_runtime_eq
+	call write_call
+	ret
 	
 	_9:
 	cmp fbuff, 3Fh ; -- ?
 	jnz _10
-	jmp call_proc_if
+	
+	mov cx, end_call_runtime_if - call_runtime_if
+	lea dx, call_runtime_if
+	call write_call
+	ret
 	
 	_10:
 	cmp fbuff, 23h ; -- #
 	jnz _11
-	jmp call_proc_while
+	
+	mov cx, end_call_runtime_while - call_runtime_while
+	lea dx, call_runtime_while
+	call write_call
+	ret
 	
 	_11:
 	cmp fbuff, 2Bh
 	jnz _12
-	jmp	call_proc_add
+	
+	mov cx, end_call_runtime_add - call_runtime_add
+	lea dx, call_runtime_add
+	call write_call
+	ret
 	
 	_12:
 	cmp fbuff, 2Dh
 	jnz _13 
-	jmp call_proc_sub
+	
+	mov cx, end_call_runtime_sub - call_runtime_sub
+	lea dx, call_runtime_sub
+	call write_call
+	ret
 	
 	_13:
 	cmp fbuff, 2Ah
 	jnz _14 
-	jmp call_proc_mul
+	
+	mov cx, end_call_runtime_mul - call_runtime_mul
+	lea dx, call_runtime_mul
+	call write_call
+	ret
 	
 	_14:
 	cmp fbuff, 2Fh
 	jnz _15
-	jmp call_proc_div
+	
+	mov cx, end_call_runtime_div - call_runtime_div
+	lea dx, call_runtime_div
+	call write_call
+	ret
 	
 	_15:
 	cmp fbuff, 7Eh
 	jnz _16
-	jmp call_proc_neg
+	
+	mov cx, end_call_runtime_neg - call_runtime_neg
+	lea dx, call_runtime_neg
+	call write_call
+	ret
 	
 	_16:
 	cmp fbuff, 3Eh
 	jnz _17
-	jmp call_proc_gt
+	
+	mov cx, end_call_runtime_gt - call_runtime_gt
+	lea dx, call_runtime_gt
+	call write_call
+	ret
 	
 	_17:
 	cmp fbuff, 26h
 	jnz _18
-	jmp call_proc_and
+	
+	mov cx, end_call_runtime_and - call_runtime_and
+	lea dx, call_runtime_and
+	call write_call
+	ret
 	
 	_18:
 	cmp fbuff, 7Ch
 	jnz _19
-	jmp call_proc_or
+	
+	mov cx, end_call_runtime_or - call_runtime_or
+	lea dx, call_runtime_or
+	call write_call
+	ret
 	
 	_19:
 	cmp fbuff, 24h
 	jnz _20
-	jmp call_proc_dup
+	
+	mov cx, 2
+	lea dx, OPCODE_MOV_AX_BX
+	mov ax, 4000h
+	mov bx, exechandle
+	int 21h
+	add address_pointer, cx
+	
+	call _push
+	ret
 	
 	_20:
 	cmp fbuff, 25h
 	jnz _21
-	jmp call_proc_drop
+	
+	mov cx, end_call_runtime_pop - call_runtime_pop
+	lea dx, call_runtime_pop
+	call write_call
+	ret
 	
 	_21:
 	cmp fbuff, 5Ch
 	jnz _22
-	jmp call_proc_swap
+	
+	mov cx, end_call_runtime_swap - call_runtime_swap
+	lea dx, call_runtime_swap
+	call write_call
+	ret
 	
 	_22:
 	cmp fbuff, 40h
 	jnz _23
-	jmp call_proc_rot
+	
+	mov cx, end_call_runtime_rot - call_runtime_rot
+	lea dx, call_runtime_rot
+	call write_call
+	ret
 	
 	_23:
 	cmp fbuff, 4Fh
 	jnz _24
-	jmp call_proc_pick
+	
+	mov cx, end_call_runtime_pick - call_runtime_pick
+	lea dx, call_runtime_pick
+	call write_call
+	ret
 	
 	_24:
 	cmp fbuff, 2Ch
 	jnz _25
-	jmp call_proc_comma
+	
+	mov cx, end_call_runtime_comma - call_runtime_comma
+	lea dx, call_runtime_comma
+	call write_call
+	ret
 	
 	_25:
 	cmp fbuff, 5Eh
 	jnz _26
-	jmp call_proc_input
+	
+	mov cx, end_call_runtime_input - call_runtime_input
+	lea dx, call_runtime_input
+	call write_call
+	ret
 	
 	_26:
 	cmp fbuff, 5Fh
 	jnz _27
-	jmp call_proc_unary_minus
+	mov cx, end_call_runtime_unary_minus - call_runtime_unary_minus
+	lea dx, call_runtime_unary_minus
+	call write_call
+	ret
 	
 	_27:
 	cmp fbuff, 60h ; 61 -- a
@@ -684,105 +804,9 @@ call_proc_var:
 call_proc_num:
 	call proc_num
 	ret
-	
-call_proc_colon:
-	call proc_colon
-	ret
-	
-call_proc_semicolon:
-	call proc_semicolon
-	ret
-	
-call_proc_dot:
-	call proc_dot
-	ret
-	
-call_proc_begin:
-	call proc_begin
-	ret
-	
+		
 call_proc_end:
 	call proc_end
-	ret
-
-call_proc_apply:
-	call proc_apply
-	ret
-
-call_proc_eq:	
-	call proc_eq
-	ret
-	
-call_proc_if:
-	call proc_if
-	ret
-	
-call_proc_while:
-	call proc_while
-	ret
-	
-call_proc_add:
-	call proc_add
-	ret
-
-call_proc_sub:
-	call proc_sub
-	ret
-
-call_proc_div:
-	call proc_div
-	ret
-
-call_proc_mul:
-	call proc_mul
-	ret	
-	
-call_proc_neg:
-	call proc_neg
-	ret
-	
-call_proc_gt:
-	call proc_gt
-	ret
-	
-call_proc_and:
-	call proc_and
-	ret
-
-call_proc_or:
-	call proc_or
-	ret
-
-call_proc_dup:
-	call proc_dup
-	ret
-	
-call_proc_drop:
-	call proc_drop
-	ret
-
-call_proc_swap:
-	call proc_swap
-	ret
-
-call_proc_rot:
-	call proc_rot
-	ret
-
-call_proc_pick:
-	call proc_pick
-	ret
-	
-call_proc_comma:
-	call proc_comma
-	ret
-	
-call_proc_input:
-	call proc_input
-	ret
-
-call_proc_unary_minus:
-	call proc_unary_minus
 	ret
 	
 proc_symbol endp
@@ -954,51 +978,6 @@ parse_num proc near
 	ret
 parse_num endp
 
-proc_colon proc near
-	
-	mov cx, end_call_runtime_assign - call_runtime_assign
-	lea dx, call_runtime_assign
-	call write_call
-	ret
-	
-proc_colon endp
-
-proc_semicolon proc near
-	
-	mov cx, end_call_runtime_get_value - call_runtime_get_value
-	lea dx, call_runtime_get_value
-	call write_call
-	ret
-	
-proc_semicolon endp
-
-proc_dot proc near
-
-	mov cx, end_call_runtime_print_top_stack - call_runtime_print_top_stack
-	lea dx, call_runtime_print_top_stack
-	call write_call
-	ret
-	
-proc_dot endp
-
-proc_begin proc near
-
-	mov ah,	40h 
-    mov bx, exechandle 
-    mov cx, 2 
-    lea dx, OPCODE_JMP
-    int 21h ; write 'eb00' to the com-file
-	add address_pointer, 2h;
-	mov si, jmp_labels_pointer;
-	mov bx, address_pointer;
-	dec bx;
-	mov jmp_labels[si], bx;  move to the stack of labels current address for backtracing
-	add jmp_labels_pointer, 2
-	ret;
-
-	ret
-proc_begin endp
-
 proc_end proc near
 
 	mov ah,	40h 
@@ -1058,162 +1037,6 @@ proc_end proc near
 	ret
 
 proc_end endp
-
-proc_apply proc near
-	mov ax, 4000h
-	mov bx, exechandle
-	mov cx, 9
-	lea dx, OPCODE_XOR_MOV_DI
-	int 21h
-	add address_pointer, 9
-	
-	mov ax, 4000h
-	mov bx, exechandle
-	mov cx, 2
-	lea dx, OPCODE_CALL_ABS
-	int 21h
-	add address_pointer, 2
-	ret
-	
-proc_apply endp
-
-proc_eq proc near
-	mov cx, end_call_runtime_eq - call_runtime_eq
-	lea dx, call_runtime_eq
-	call write_call
-	ret
-proc_eq endp
-
-proc_if proc near
-	mov cx, end_call_runtime_if - call_runtime_if
-	lea dx, call_runtime_if
-	call write_call
-	ret
-proc_if endp
-
-proc_while proc near
-	mov cx, end_call_runtime_while - call_runtime_while
-	lea dx, call_runtime_while
-	call write_call
-	ret
-proc_while endp
-
-proc_add proc near
-	mov cx, end_call_runtime_add - call_runtime_add
-	lea dx, call_runtime_add
-	call write_call
-	ret
-proc_add endp
-
-proc_sub proc near
-	mov cx, end_call_runtime_sub - call_runtime_sub
-	lea dx, call_runtime_sub
-	call write_call
-	ret
-proc_sub endp
-
-proc_mul proc near
-	mov cx, end_call_runtime_mul - call_runtime_mul
-	lea dx, call_runtime_mul
-	call write_call
-	ret
-proc_mul endp
-
-proc_div proc near
-	mov cx, end_call_runtime_div - call_runtime_div
-	lea dx, call_runtime_div
-	call write_call
-	ret
-proc_div endp
-
-proc_neg proc near
-	mov cx, end_call_runtime_neg - call_runtime_neg
-	lea dx, call_runtime_neg
-	call write_call
-	ret
-proc_neg endp
-
-proc_gt proc near
-	mov cx, end_call_runtime_gt - call_runtime_gt
-	lea dx, call_runtime_gt
-	call write_call
-	ret
-proc_gt endp
-
-proc_and proc near
-	mov cx, end_call_runtime_and - call_runtime_and
-	lea dx, call_runtime_and
-	call write_call
-	ret
-proc_and endp
-
-proc_or proc near
-	mov cx, end_call_runtime_or - call_runtime_or
-	lea dx, call_runtime_or
-	call write_call
-	ret
-proc_or endp
-
-proc_dup proc near
-	mov cx, 2
-	lea dx, OPCODE_MOV_AX_BX
-	mov ax, 4000h
-	mov bx, exechandle
-	int 21h
-	add address_pointer, cx
-	
-	call _push
-	ret
-proc_dup endp
-
-proc_drop proc near
-	mov cx, end_call_runtime_pop - call_runtime_pop
-	lea dx, call_runtime_pop
-	call write_call
-	ret
-proc_drop endp
-
-proc_swap proc near
-	mov cx, end_call_runtime_swap - call_runtime_swap
-	lea dx, call_runtime_swap
-	call write_call
-	ret
-proc_swap endp
-
-proc_rot proc near
-	mov cx, end_call_runtime_rot - call_runtime_rot
-	lea dx, call_runtime_rot
-	call write_call
-	ret
-proc_rot endp
-
-proc_pick proc near
-	mov cx, end_call_runtime_pick - call_runtime_pick
-	lea dx, call_runtime_pick
-	call write_call
-	ret
-proc_pick endp
-
-proc_comma proc near
-	mov cx, end_call_runtime_comma - call_runtime_comma
-	lea dx, call_runtime_comma
-	call write_call
-	ret
-proc_comma endp
-
-proc_input proc near
-	mov cx, end_call_runtime_input - call_runtime_input
-	lea dx, call_runtime_input
-	call write_call
-	ret
-proc_input endp
-
-proc_unary_minus proc near
-	mov cx, end_call_runtime_unary_minus - call_runtime_unary_minus
-	lea dx, call_runtime_unary_minus
-	call write_call
-	ret
-proc_unary_minus endp
 
 write_call proc near
 	mov ax, 4000h
