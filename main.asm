@@ -838,10 +838,7 @@ end_string:
 	mov cx, 1
 	int 21h ; write backtracing
 	
-	mov ax, 4202h
-	xor cx, cx;
-	xor dx, dx;
-	int 21h; return file pointer back to the eof
+	call ret_fp
 	
 	mov si, jmp_labels_pointer;
 	mov ax, jmp_labels[si]
@@ -960,13 +957,10 @@ proc_end proc near
 	mov bx, exechandle
 	mov ax,	4000h
 	mov cx, 1
-	int 21h ; write backtracing
+	int 21h
 	
-	mov ax, 4202h
-	xor cx, cx;
-	xor dx, dx;
-	int 21h; return file pointer back to the eof
-
+	call ret_fp
+	
 	;datapush address
 	mov ax, jmp_labels[si]
 	inc ax
@@ -1011,19 +1005,26 @@ write proc near
 	ret
 write endp
 
+ret_fp proc near
+	mov ax, 4202h
+	xor cx, cx;
+	xor dx, dx;
+	int 21h; return file pointer back to the eof
+	ret
+ret_fp endp
+
 closefile proc near
-	mov ah,	40h 
-    mov bx, exechandle 
-    mov cx, 4 
+	mov cx, 4 
     lea dx, OPCODE_END
-	add address_pointer, 4h
-    int 21h
-    mov  ah,3EH        
+	call write
+	
+	mov  ah,3EH        
     mov  bx,handle     
     int  21H  
 	mov  bx,exechandle 
     int  21h
     ret
+	
 closefile endp
 
 END
