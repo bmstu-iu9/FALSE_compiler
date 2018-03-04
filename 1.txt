@@ -1,1 +1,44 @@
-"HELLO""ASDAS"
+1 2 + . "
+should be 3
+"
+12341 123 + . "
+should be 12464
+"
+
+3 4 * . "
+should be 12
+"
+5 5 * 5 * . "
+should be 125
+"
+
+7 10 - . "
+should be 3
+"
+14 1233 - ."
+should be 1219
+"
+
+3 39 / . "
+should be 13
+"
+111 777 / . "
+should be 7
+"
+
+"if test
+"
+
+1 2 = ["hello
+"]? "
+should print nothing
+"
+
+1 1 = ["hello"]? "
+should print hello
+"
+
+10a: [2 a; >][1 a; - a: "hello"]#
+
+[$1=$[\%1\]?~[$1-f;!*]?]f: 5f;! .
+
