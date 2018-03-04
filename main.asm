@@ -543,7 +543,6 @@ proc_symbol proc near
 	
 	call _push
 	xor di, di
-	ret
 	
 	_2:
 	cmp fbuff, 3Ah ;3Ah -- :
