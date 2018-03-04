@@ -493,7 +493,10 @@ proc_symbol proc near
 	_1:
 	cmp flags, 01h;
 	jnz _cmp_num
-	jmp	call_generate_string
+	mov cx, 1 
+    lea dx, fbuff
+    call write
+	ret
 	
 	_cmp_num:
 	cmp fbuff, 2Fh; 30 -- 0
@@ -502,13 +505,44 @@ proc_symbol proc near
 	
 	_num:
 	mov flags, 03H
-	call proc_num
+	mov al, fbuff
+	sub al, 30H
+	mov bytes[di], al
+	inc di
 	ret
 		
 	_not_num:
 	cmp flags, 03H
 	jnz _2 
-	call parse_num
+	mov flags, 00H ; clear flags
+
+	mov cx, 1
+	lea dx, OPCODE_MOV_AX
+	call write
+	
+	xor ax, ax
+	mov dx, 10
+	mov cx, di
+	xor di, di
+	
+	proc_byte:
+	cmp di, cx
+	jz write_num
+	mov bl, bytes[di]
+	mul dx
+	mov dx, 10
+	add ax, bx
+	inc di
+	jmp proc_byte
+	
+	write_num:
+	mov number, ax
+	mov cx, 2
+	lea dx, number
+	call write
+	
+	call _push
+	xor di, di
 	ret
 	
 	_2:
@@ -754,7 +788,25 @@ proc_symbol proc near
 
 check_is_var:
 	cmp fbuff, 7Bh
-	jb call_proc_var
+	jnb _ret 
+	xor ax, ax;
+	mov al, fbuff;
+	sub al, 61H;
+	mov bx, 0002H;
+	mul bx
+	add ax, vars_offset;
+	mov number, ax
+	
+	mov cx, 1
+	lea dx, OPCODE_MOV_AX
+	call write
+	
+	mov cx, 2
+	lea dx, number
+	call write
+	
+	call _push
+	_ret:
 	ret
 
 check_is_num:
@@ -766,18 +818,6 @@ check_is_num:
 	
 call_proc_quotation: 
     call proc_quotation
-	ret
-	
-call_generate_string: 
-	call generate_string
-	ret
-	
-call_proc_var:
-	call proc_var
-	ret
-		
-call_proc_num:
-	call proc_num
 	ret
 		
 call_proc_end:
@@ -853,79 +893,6 @@ end_string:
 	
 proc_quotation endp
 
-generate_string proc near
-	mov cx, 1 
-    lea dx, fbuff
-    call write
-	
-	ret
-generate_string endp
-
-proc_var proc near
-	
-	xor ax, ax;
-	mov al, fbuff;
-	sub al, 61H;
-	mov bx, 0002H;
-	mul bx
-	add ax, vars_offset;
-	mov number, ax
-	
-	mov cx, 1
-	lea dx, OPCODE_MOV_AX
-	call write
-	
-	mov cx, 2
-	lea dx, number
-	call write
-	
-	call _push
-	ret
-	
-proc_var endp
-
-proc_num proc near
-
-	mov al, fbuff
-	sub al, 30H
-	mov bytes[di], al
-	inc di
-	ret
-	
-proc_num endp 
-
-parse_num proc near
-	mov flags, 00H ; clear flags
-
-	mov cx, 1
-	lea dx, OPCODE_MOV_AX
-	call write
-	
-	xor ax, ax
-	mov dx, 10
-	mov cx, di
-	xor di, di
-	
-	proc_byte:
-	cmp di, cx
-	jz write_num
-	mov bl, bytes[di]
-	mul dx
-	mov dx, 10
-	add ax, bx
-	inc di
-	jmp proc_byte
-	
-	write_num:
-	mov number, ax
-	mov cx, 2
-	lea dx, number
-	call write
-	
-	call _push
-	xor di, di
-	ret
-parse_num endp
 
 proc_end proc near
 
