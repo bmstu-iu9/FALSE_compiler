@@ -438,24 +438,13 @@ createfile endp
 
 init_runtime proc near
 		
-	mov bx, exechandle
-	mov ax, 4000h
 	mov cx, end_runtime - begin_runtime
 	lea dx, begin_runtime
-	int 21h
-   
-	mov bx, exechandle
-	mov ax, 4000h
+	call write
+	
 	mov cx, 3
 	lea dx, OPCODE_INIT_SE
-	int 21h
-	
-	mov ax, address_pointer
-	mov cx, end_runtime - begin_runtime 
-	add ax, cx
-	mov address_pointer, ax
-	add address_pointer, 3
-	
+	call write
 	
 	mov ax, 4200h
 	xor cx, cx;
@@ -497,7 +486,7 @@ proc_symbol proc near
 	_comm:
 	cmp flags, 02h
 	jnz _0
-	jmp default
+	ret
 		
 	_0:
 	cmp fbuff, 22h ;22H -- "
@@ -556,12 +545,10 @@ proc_symbol proc near
 	cmp fbuff, 5Bh ; -- [
 	jnz _6
 	
-	mov ah,	40h 
-    mov bx, exechandle 
-    mov cx, 2 
+	mov cx, 2 
     lea dx, OPCODE_JMP
-    int 21h ; write 'eb00' to the com-file
-	add address_pointer, 2h;
+    call write
+	
 	mov si, jmp_labels_pointer;
 	mov bx, address_pointer;
 	dec bx;
@@ -579,19 +566,13 @@ proc_symbol proc near
 	cmp fbuff, 21h ; -- !
 	jnz _8
 	
-	mov ax, 4000h
-	mov bx, exechandle
 	mov cx, 9
 	lea dx, OPCODE_XOR_MOV_DI
-	int 21h
-	add address_pointer, 9
+	call write
 	
-	mov ax, 4000h
-	mov bx, exechandle
 	mov cx, 2
 	lea dx, OPCODE_CALL_ABS
-	int 21h
-	add address_pointer, 2
+	call write
 	ret
 	
 	_8:
@@ -772,15 +753,12 @@ proc_symbol proc near
 	_27:
 	cmp fbuff, 60h ; 61 -- a
 	ja check_is_var
-default:
-	mov  ah,2
-    int  21H 
 	ret
 
 check_is_var:
 	cmp fbuff, 7Bh
 	jb call_proc_var
-	jmp default
+	ret
 
 check_is_num:
 	cmp fbuff, 3Ah
@@ -816,12 +794,11 @@ proc_quotation proc near
 	jnz  end_string
 	
 	mov flags, 01H;
-	mov ah,	40h 
-    mov bx, exechandle 
-    mov cx, 2 
+	
+	mov cx, 2 
     lea dx, OPCODE_JMP
-    int 21h ; write 'eb00' to the com-file
-	add address_pointer, 2h;
+    call write
+	
 	mov si, jmp_labels_pointer;
 	mov bx, address_pointer;
 	dec bx;
@@ -832,18 +809,13 @@ proc_quotation proc near
 end_string:
 	mov flags, 00H; clear flags 
 	
-	mov ah,	40h 
-    mov bx, exechandle 
-    mov cx, 1
+	mov cx, 1
 	lea dx, OPCODE_EOF
-	int 21h;
-	add address_pointer, 1h;
+	call write
 	
-	mov ax, 4000h
 	mov cx, 1
     lea dx, OPCODE_MOV_DX
-	int 21h; write mov dx to the file 
-	add address_pointer, 1h;
+	call write
 	
 	dec jmp_labels_pointer; backtracing
 	mov ax, 4200h
@@ -875,29 +847,24 @@ end_string:
 	mov ax, jmp_labels[si]
 	inc ax;
 	mov jmp_labels[si], ax;
-	lea dx, jmp_labels[si]
-	mov ax,	4000h
-	mov cx, 2
-	int 21h; write data address to the file
-	add address_pointer, 2h;
 	
-	mov ah,	40h 
+	lea dx, jmp_labels[si]
+	mov cx, 2
+	call write
+	
 	mov cx, 4
 	lea dx, OPCODE_PRINT
-	int 21h; write dos int 21h 
-	add address_pointer, 4h;
+	call write
 	
 	ret;
 	
 proc_quotation endp
 
 generate_string proc near
-	mov ah,	40h 
-    mov bx, exechandle 
-    mov cx, 1 
+	mov cx, 1 
     lea dx, fbuff
-    int 21h 
-	add address_pointer, 1h ;address_pointer to the last written byte
+    call write
+	
 	ret
 generate_string endp
 
@@ -911,18 +878,13 @@ proc_var proc near
 	add ax, vars_offset;
 	mov number, ax
 	
-	mov bx, exechandle
-	mov ax, 4000h
 	mov cx, 1
 	lea dx, OPCODE_MOV_AX
-	int 21h
+	call write
 	
-	mov bx, exechandle
-	mov ax, 4000h
 	mov cx, 2
 	lea dx, number
-	int 21h
-	add address_pointer, 3
+	call write
 	
 	call _push
 	ret
@@ -942,11 +904,9 @@ proc_num endp
 parse_num proc near
 	mov flags, 00H ; clear flags
 
-	mov bx, exechandle
-	mov ax, 4000h
 	mov cx, 1
 	lea dx, OPCODE_MOV_AX
-	int 21h
+	call write
 	
 	xor ax, ax
 	mov dx, 10
@@ -955,7 +915,7 @@ parse_num proc near
 	
 	proc_byte:
 	cmp di, cx
-	jz write
+	jz write_num
 	mov bl, bytes[di]
 	mul dx
 	mov dx, 10
@@ -963,15 +923,11 @@ parse_num proc near
 	inc di
 	jmp proc_byte
 	
-	write:
+	write_num:
 	mov number, ax
-	mov bx, exechandle
-	mov ax, 4000h
 	mov cx, 2
 	lea dx, number
-	int 21h
-	
-	add address_pointer, 3
+	call write
 	
 	call _push
 	xor di, di
@@ -980,12 +936,9 @@ parse_num endp
 
 proc_end proc near
 
-	mov ah,	40h 
-    mov bx, exechandle 
     mov cx, 1
 	lea dx, OPCODE_RET
-	int 21h;
-	add address_pointer, 1h;
+	call write
 	
 	sub jmp_labels_pointer, 2; backtracing
 	mov ax, 4200h
@@ -1019,19 +972,13 @@ proc_end proc near
 	inc ax
 	mov number, ax
 	
-	mov bx, exechandle
-	mov ax, 4000h
 	mov cx, 1
 	lea dx, OPCODE_MOV_AX
-	int 21h
+	call write
 	
-	mov bx, exechandle
-	mov ax, 4000h
 	mov cx, 2
 	lea dx, number
-	int 21h
-	
-	add address_pointer, 3
+	call write
 	
 	call _push
 	ret
@@ -1039,16 +986,12 @@ proc_end proc near
 proc_end endp
 
 write_call proc near
-	mov ax, 4000h
-	mov bx, exechandle
-	int 21h
-	add address_pointer, cx
+	call write
 	
-	mov ax, 4000h
 	mov cx, 2
 	lea dx, OPCODE_CALL_ABS
-	int 21h
-	add address_pointer, cx
+	call write
+	
 	ret
 write_call endp
 
@@ -1058,6 +1001,15 @@ _push proc near
 	call write_call
 	ret
 _push endp
+
+write proc near	
+	mov ah, 40h
+	mov bx, exechandle
+	int 21h
+	
+	add address_pointer, cx
+	ret
+write endp
 
 closefile proc near
 	mov ah,	40h 
