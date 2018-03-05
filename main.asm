@@ -276,97 +276,6 @@ runtime_unary_minus proc near
 	call runtime_push
 	ret
 runtime_unary_minus endp
-
-call_runtime_and:
-	xor di, di
-	lea dx, runtime_and
-	mov [di], dx
-end_call_runtime_and:
-	
-call_runtime_comma:
-	xor di, di
-	lea dx, runtime_comma
-	mov [di], dx
-end_call_runtime_comma:
-	
-call_runtime_if:
-	xor di, di
-	lea dx, runtime_if
-	mov [di], dx
-end_call_runtime_if:
-
-call_runtime_input:
-	xor di, di
-	lea dx, runtime_input
-	mov [di], dx
-end_call_runtime_input:
-
-call_runtime_pick:
-	xor di, di
-	lea dx, runtime_pick
-	mov [di], dx
-end_call_runtime_pick:
-
-call_runtime_pop:
-	xor di, di
-	lea dx, runtime_pop
-	mov [di], dx
-end_call_runtime_pop:
-
-call_runtime_rot:
-	xor di, di
-	lea dx, runtime_rot
-	mov [di], dx
-end_call_runtime_rot:
-
-call_runtime_while:
-	xor di, di
-	lea dx, runtime_while
-	mov [di], dx
-end_call_runtime_while:
-
-call_runtime_push:
-	xor di, di
-	lea dx, runtime_push
-	mov [di], dx
-end_call_runtime_push:
-
-call_runtime_or:
-	xor di, di
-	lea dx, runtime_or
-	mov [di], dx
-end_call_runtime_or:
-
-call_runtime_swap:
-	xor di, di
-	lea dx, runtime_swap
-	mov [di], dx
-end_call_runtime_swap:
-
-call_runtime_div:
-	xor di, di
-	lea dx, runtime_div
-	mov [di], dx
-end_call_runtime_div:
-	
-call_runtime_neg:
-	xor di, di
-	lea dx, runtime_neg
-	mov [di], dx
-end_call_runtime_neg:
-
-call_runtime_gt:
-	xor di, di
-	lea dx, runtime_gt
-	mov [di], dx
-end_call_runtime_gt:
-
-call_runtime_unary_minus:
-	xor di, di
-	lea dx, runtime_unary_minus
-	mov [di], dx
-end_call_runtime_unary_minus:
-
 	
 end_runtime:
 
@@ -510,9 +419,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_assign
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -523,9 +429,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_get_value
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -536,9 +439,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_print_top_stack
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -583,9 +483,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_eq
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -596,9 +493,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_if
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -609,9 +503,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_while
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -622,9 +513,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_add
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -635,9 +523,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_sub
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -648,9 +533,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_mul
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -661,9 +543,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_div
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -674,9 +553,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_neg
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -687,9 +563,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_gt
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -700,9 +573,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_and
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -713,9 +583,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_or
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -740,9 +607,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_pop
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -753,9 +617,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_swap
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -766,9 +627,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_rot
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -779,9 +637,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_pick
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -792,9 +647,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_comma
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -805,9 +657,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_input
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -818,9 +667,6 @@ proc_symbol proc near
 	
 	lea dx, runtime_unary_minus
 	mov proc_addr, dx
-	call write_mov_dx
-	lea dx, proc_addr
-	call write
 	call write_exec
 	ret
 	
@@ -994,6 +840,14 @@ write_call proc near
 write_call endp
 
 write_exec proc near
+	
+	mov cx, 1
+	lea dx, OPCODE_MOV_DX
+	call write
+	
+	mov cx, 2
+	lea dx, proc_addr
+	call write
 
 	mov cx, 4
 	lea dx, OPCODE_RUNTIME_CALL
@@ -1006,20 +860,10 @@ write_exec proc near
 	ret
 write_exec endp
 
-write_mov_dx proc near
-	
-	mov cx, 1
-	lea dx, OPCODE_MOV_DX
-	call write
-	
-	mov cx, 2
-	ret
-write_mov_dx endp
-
 _push proc near
-	mov cx, end_call_runtime_push - call_runtime_push
-	lea dx, call_runtime_push
-	call write_call
+	lea dx, runtime_push
+	mov proc_addr, dx
+	call write_exec
 	ret
 _push endp
 
