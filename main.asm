@@ -128,13 +128,9 @@ runtime_mul endp
 runtime_neg proc near
 	cmp bx, 0000h
 	jz false
-	mov ax, 0000h
-	jmp replace
+	mov bx, 0000h
 	false:
-	mov ax, 0001h
-	replace:
-	call runtime_pop
-	call runtime_push
+	mov bx, 0001h
 	ret
 runtime_neg endp
 
@@ -147,11 +143,9 @@ runtime_or endp
 runtime_pick proc near
 	mov cx, bx
 	mov di, si
-	call runtime_pop
 	sub di, cx
 	sub di, cx
-	mov ax, [di]
-	call runtime_push
+	mov bx, [di]
 	ret
 runtime_pick endp
 
@@ -184,10 +178,7 @@ runtime_swap proc near
 runtime_swap endp
 
 runtime_get_value proc near
-	mov di, bx
-	call runtime_pop
-	mov ax, [di]
-	call runtime_push
+	mov bx, [bx]
 	ret
 runtime_get_value endp
 	
@@ -246,10 +237,7 @@ runtime_eq proc near
 runtime_eq endp
 
 runtime_unary_minus proc near
-	mov ax, bx
-	call runtime_pop
-	neg ax
-	call runtime_push
+	neg bx
 	ret
 runtime_unary_minus endp
 	
