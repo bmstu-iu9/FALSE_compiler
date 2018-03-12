@@ -31,6 +31,8 @@ OPCODE_RUNTIME_CALL	DB 	033h, 0FFh, 089h, 015h
 OPCODE_RET			DB 	0C3h
 OPCODE_INIT_SE 		DB	0BEh, 0AAh, 0AAh
 
+
+;bx -- top stack , [si] -- under top stack
 .CODE
 .STARTUP
 begin_runtime:
@@ -70,23 +72,18 @@ runtime_while endp
 	
 runtime_add proc near
 	mov ax, bx
-	call runtime_pop
-	add ax, bx
-	call runtime_pop
-	call runtime_push
-	ret
+	add ax, [si]
+	jmp push_value
 runtime_add endp
 
 runtime_and proc near
 	mov ax, bx
-	call runtime_pop
-	and ax, bx
-	call runtime_pop
-	call runtime_push
-	ret
+	and ax, [si]
+	jmp push_value
 runtime_and endp
 	
 runtime_assign proc near
+;fixed
 	mov di, bx;
 	call runtime_pop
 	mov [di], bx
@@ -95,6 +92,7 @@ runtime_assign proc near
 runtime_assign endp
 
 runtime_comma proc near
+;fixed
 	mov  ah, 2
 	mov  dx, bx
 	int  21H 
@@ -102,27 +100,25 @@ runtime_comma proc near
 runtime_comma endp
 
 runtime_div proc near
+;fixed
 	mov ax, bx
-	call runtime_pop
-	div bl
-	call runtime_pop
-	call runtime_push
- 	ret
+	div byte ptr [si]
+	jmp push_value
 runtime_div endp
 
 runtime_gt proc near
-	mov ax, bx
-	call runtime_pop
-	cmp ax, bx
+;fixed
+	cmp bx, [si]
 	ja _gt
 	mov ax, 0000h
-	jmp replace
+	jmp push_value
 	_gt:
 	mov ax, 0001h
-	jmp replace
+	jmp push_value
 runtime_gt endp
 
 runtime_input proc near
+	;fixed
 	mov ah, 01h
 	int 21h
 	mov ah, 00h
@@ -131,15 +127,14 @@ runtime_input proc near
 runtime_input endp
 
 runtime_mul proc near
+;fixed
 	mov ax, bx
-	call runtime_pop
-	mul bx
-	call runtime_pop
-	call runtime_push
-	ret
+	mul byte ptr [si]
+	jmp push_value
 runtime_mul endp
 
 runtime_neg proc near
+;fixed
 	cmp bx, 0000h
 	jz false
 	mov ax, 0000h
@@ -153,15 +148,14 @@ runtime_neg proc near
 runtime_neg endp
 
 runtime_or proc near
+;fixed
 	mov ax, bx
-	call runtime_pop
-	or ax, bx
-	call runtime_pop
-	call runtime_push
-	ret
+	or ax, [si]
+	jmp push_value
 runtime_or endp
 
 runtime_pick proc near
+;fixed
 	mov cx, bx
 	call runtime_pop
 	mov di, si
@@ -173,6 +167,7 @@ runtime_pick proc near
 runtime_pick endp
 
 runtime_rot proc near
+;fixed
 	mov dx, bx
 	call runtime_pop
 	mov ax, bx
@@ -188,26 +183,22 @@ runtime_rot proc near
 runtime_rot endp
 
 runtime_sub proc near
+	;fixed
 	mov ax, bx
-	call runtime_pop
-	sub ax, bx
-	call runtime_pop
-	call runtime_push
-	ret
+	sub ax, [si]
+	
+	jmp push_value
+	
 runtime_sub endp
 
 runtime_swap proc near
-	mov ax, bx
-	call runtime_pop
-	mov dx, bx
-	call runtime_pop
-	call runtime_push 
-	mov ax, dx
-	call runtime_push
+	;fixed
+	xchg bx, [si]
 	ret
 runtime_swap endp
 
 runtime_get_value proc near
+	;fixed
 	mov di, bx
 	call runtime_pop
 	mov ax, [di]
@@ -215,21 +206,24 @@ runtime_get_value proc near
 	ret
 runtime_get_value endp
 	
-runtime_push proc near ;pushes ax value to the stack
+runtime_push proc near 
+	;fixed
 	add si, 2;
+	mov [si], bx;
 	mov bx, ax
-	mov [si], ax;
 	ret
 runtime_push endp
 
 runtime_pop proc near
-	sub si, 2
+	;fixed
 	mov bx, [si]
+	sub si, 2
 	ret
 runtime_pop endp
 
 runtime_print_top_stack proc near
-	mov  ah,2 
+;fixed
+	mov  ah, 2 ; done
 	mov  ax, bx
 	mov  di, 6
 	mov	 cx, 10
@@ -254,22 +248,24 @@ runtime_print_top_stack proc near
 runtime_print_top_stack endp
 
 runtime_eq proc near
-	mov ax, bx
-	call runtime_pop
-	cmp ax, bx
-	jz	push_true
+;fixed
+	cmp bx, [si]
+	jz ax_true
 	mov ax, 0
+	jmp push_value
+	ax_true:
+	mov ax, 1
+	
 	push_value:
+	call runtime_pop
 	call runtime_pop
 	call runtime_push
 	ret
-	
-	push_true:
-		mov ax, 1
-		jmp push_value
+
 runtime_eq endp
 
 runtime_unary_minus proc near
+;fixed
 	mov ax, bx
 	call runtime_pop
 	neg ax
