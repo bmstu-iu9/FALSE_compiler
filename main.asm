@@ -19,17 +19,17 @@ body 				DW  ?
 proc_addr			DW 	?
 
 OPCODE_EOF			DB  '$'
-OPCODE_JMP  		DB	0EBh, 000H
-OPCODE_MOV_DX		DB  0BAh
-OPCODE_PRINT		DB  0B4h, 009h, 0CDh, 021h
-OPCODE_END			DB  0B4h, 04Ch ,0CDh, 021h
-OPCODE_MOV_AX		DB	0B8h
-OPCODE_MOV_AX_BX	DB	08Bh, 0C3h
-OPCODE_CALL_ABS		DB	0FFh, 015h
-OPCODE_XOR_MOV_DI	DB	033h, 0FFh, 089h, 01Dh, 083h, 0EEh, 002h, 08Bh, 01Ch
-OPCODE_RUNTIME_CALL	DB 	033h, 0FFh, 089h, 015h
-OPCODE_RET			DB 	0C3h
-OPCODE_INIT_SE 		DB	0BEh, 0AAh, 0AAh
+OPCODE_JMP  		DB	0EBh, 000H ; jmp label
+OPCODE_MOV_DX		DB  0BAh ; mov dx 
+OPCODE_PRINT		DB  0B4h, 009h, 0CDh, 021h ; call dos interrupt to print string
+OPCODE_END			DB  0B4h, 04Ch ,0CDh, 021h ; call dos interrupt to finish program
+OPCODE_MOV_AX		DB	0B8h ; mov ax
+OPCODE_MOV_AX_BX	DB	08Bh, 0C3h ; mov ax, bx
+OPCODE_CALL_ABS		DB	0FFh, 015h ; call mem16
+OPCODE_XOR_MOV_DI	DB	033h, 0FFh, 089h, 01Dh, 083h, 0EEh, 002h, 08Bh, 01Ch ; xor di, di ; mov [di], bx ; sub si, 2; mov bx, [si]
+OPCODE_RUNTIME_CALL	DB 	033h, 0FFh, 089h, 015h ; xor di, di ; mov [di], dx
+OPCODE_RET			DB 	0C3h ; ret
+OPCODE_INIT_SE 		DB	0BEh, 0AAh, 0AAh ; mov se, 0AAAAh
 
 len dw (?)
 
