@@ -29,7 +29,33 @@ OPCODE_CALL_ABS		DB	0FFh, 015h
 OPCODE_XOR_MOV_DI	DB	033h, 0FFh, 089h, 01Dh, 083h, 0EEh, 002h, 08Bh, 01Ch
 OPCODE_RUNTIME_CALL	DB 	033h, 0FFh, 089h, 015h
 OPCODE_RET			DB 	0C3h
-OPCODE_INIT_SE 		DB	0BEh, 077h, 077h
+OPCODE_INIT_SE 		DB	0BEh, 0AAh, 0AAh
+
+len dw (?)
+
+simple_commands_table DW (?)
+dw 3A00h, offset runtime_assign
+dw 3B00h, offset runtime_get_value 
+dw 2E00h, offset runtime_print_top_stack
+dw 3D00h, offset runtime_eq
+dw 3F00h, offset runtime_if
+dw 2300h, offset runtime_while
+dw 2B00h, offset runtime_add
+dw 2D00h, offset runtime_sub
+dw 2A00h, offset runtime_mul
+dw 2F00h, offset runtime_div
+dw 7E00h, offset runtime_neg
+dw 3E00h, offset runtime_gt
+dw 2600h, offset runtime_and
+dw 7C00h, offset runtime_or
+dw 2500h, offset runtime_pop
+dw 5C00h, offset runtime_swap
+dw 4000h, offset runtime_rot
+dw 4F00h, offset runtime_pick
+dw 2C00h, offset runtime_comma
+dw 5E00h, offset runtime_input
+dw 5F00h, offset runtime_unary_minus
+end_commands_table DW (?)
 
 .CODE
 .STARTUP
@@ -377,37 +403,8 @@ proc_symbol proc near
 	call _push
 	xor di, di
 	
+	
 	_2:
-	cmp fbuff, 3Ah ;3Ah -- :
-	jnz _3
-	
-	lea dx, runtime_assign
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
-	_3:
-	cmp fbuff, 3Bh
-	jnz _4
-	
-	lea dx, runtime_get_value
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
-	_4:
-	cmp fbuff, 2Eh
-	jnz _5
-	
-	lea dx, runtime_print_top_stack
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
-	_5:
 	cmp fbuff, 5Bh ; -- [
 	jnz _6
 	
@@ -445,113 +442,7 @@ proc_symbol proc near
 	cmp fbuff, 3Dh ; -- =
 	jnz _9
 	
-	lea dx, runtime_eq
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
 	_9:
-	cmp fbuff, 3Fh ; -- ?
-	jnz _10
-	
-	lea dx, runtime_if
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
-	_10:
-	cmp fbuff, 23h ; -- #
-	jnz _11
-	
-	lea dx, runtime_while
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
-	_11:
-	cmp fbuff, 2Bh
-	jnz _12
-	
-	lea dx, runtime_add
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
-	_12:
-	cmp fbuff, 2Dh
-	jnz _13 
-	
-	lea dx, runtime_sub
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
-	_13:
-	cmp fbuff, 2Ah
-	jnz _14 
-	
-	lea dx, runtime_mul
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
-	_14:
-	cmp fbuff, 2Fh
-	jnz _15
-	
-	lea dx, runtime_div
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
-	_15:
-	cmp fbuff, 7Eh
-	jnz _16
-	
-	lea dx, runtime_neg
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
-	_16:
-	cmp fbuff, 3Eh
-	jnz _17
-	
-	lea dx, runtime_gt
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
-	_17:
-	cmp fbuff, 26h
-	jnz _18
-	
-	lea dx, runtime_and
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
-	_18:
-	cmp fbuff, 7Ch
-	jnz _19
-	
-	lea dx, runtime_or
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
-	_19:
 	cmp fbuff, 24h
 	jnz _20
 	
@@ -564,77 +455,32 @@ proc_symbol proc near
 	
 	call _push
 	ret
-	
+		
 	_20:
-	cmp fbuff, 25h
-	jnz _21
-	
-	lea dx, runtime_pop
+	mov si, offset simple_commands_table
+	mov bx, offset end_commands_table
+	sub bx, si
+	mov len, bx
+	_iter_table:
+	xor bx, bx
+	mov bh, fbuff
+	cmp [si], bx
+	jz _print_function
+	add si, 2
+	mov cx, si
+	sub cx, offset simple_commands_table
+	cmp cx, len
+	ja _21
+	jmp _iter_table
+
+	_print_function:
+	add si, 2
+	mov dx, [si]
 	mov proc_addr, dx
 	call write_exec
 	ret
-	
 	
 	_21:
-	cmp fbuff, 5Ch
-	jnz _22
-	
-	lea dx, runtime_swap
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
-	_22:
-	cmp fbuff, 40h
-	jnz _23
-	
-	lea dx, runtime_rot
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
-	_23:
-	cmp fbuff, 4Fh
-	jnz _24
-	
-	lea dx, runtime_pick
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
-	_24:
-	cmp fbuff, 2Ch
-	jnz _25
-	
-	lea dx, runtime_comma
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
-	_25:
-	cmp fbuff, 5Eh
-	jnz _26
-	
-	lea dx, runtime_input
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	
-	_26:
-	cmp fbuff, 5Fh
-	jnz _27
-	
-	lea dx, runtime_unary_minus
-	mov proc_addr, dx
-	call write_exec
-	ret
-	
-	_27:
 	cmp fbuff, 60h ; 61 -- a
 	ja check_is_var
 	ret
